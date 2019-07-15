@@ -1,7 +1,7 @@
 package com.pharbers.kafka.monitor
 
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
-import com.pharbers.kafka.monitor.action.Action
+import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction}
 import com.pharbers.kafka.monitor.guard.CountGuard
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
 import com.pharbers.kafka.schema.MonitorRequest
@@ -44,7 +44,7 @@ object MonitorServer extends App {
             case "default" => {
                 doDefaultMonitorFunc(record.value().jobId.toString, record.value().jobId + "-source")
             }
-            case ??? => ???
+//            case ??? => ???
         }
 
         println("===myProcess>>>" + record.key() + ":" + record.value())
@@ -52,7 +52,7 @@ object MonitorServer extends App {
 
     def doDefaultMonitorFunc(jobId: String, topic: String): Unit = {
         //action should be send progressMsg.
-        val action =  new Action() { override def exec(): Unit = println("********************ok*******************") }
+        val action =  KafkaMsgAction(topic, jobId)
         BaseGuardManager.createGuard(jobId, CountGuard(jobId, topic, "http://59.110.31.50:8088", action))
         BaseGuardManager.openGuard(jobId)
     }
