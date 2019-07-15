@@ -1,9 +1,10 @@
 package com.pharbers.kafka.monitor
 
-import java.lang.InterruptedException
-
-import com.pharbers.kafka.common.kafka_config_obj
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
+import com.pharbers.kafka.monitor.action.Action
+import com.pharbers.kafka.monitor.guard.CountGuard
+import com.pharbers.kafka.monitor.manager.BaseGuardManager
+import com.pharbers.kafka.schema.MonitorRequest
 import org.apache.kafka.clients.consumer.ConsumerRecord
 
 /**
@@ -14,13 +15,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
   */
 object MonitorServer extends App {
 
-    //step 0 开启Kafka-Consumer接收 需要监控的Job信息（参数[JobID]和[监控策略]）
 
-    val pkc = new PharbersKafkaConsumer[String, Array[Byte]](List("test"), 1000, Int.MaxValue, monitorProcess)
-//    val pkc = new PharbersKafkaConsumer[String, Array[Byte]](List(monitor_config_obj.REQUEST_TOPIC), 1000, Int.MaxValue, myProcess)
+    //step 0 开启Kafka-Consumer接收 需要监控的Job信息（参数[JobID]和[监控策略]）
+    val pkc = new PharbersKafkaConsumer[String, MonitorRequest](List(monitor_config_obj.REQUEST_TOPIC), 1000, Int.MaxValue, monitorProcess)
     val t = new Thread(pkc)
     try {
-        println("MonitorServer start!")
+        println("MonitorServer starting!")
         t.start()
 
         println("MonitorServer is started! Close by enter \"exit\" in console.")
@@ -38,16 +38,23 @@ object MonitorServer extends App {
         println("MonitorServer close!")
     }
 
+    def monitorProcess(record: ConsumerRecord[String, MonitorRequest]): Unit = {
 
+        record.value().strategy.toString match {
+            case "default" => {
+                doDefaultMonitorFunc(record.value().jobId.toString, record.value().jobId + "-source")
+            }
+            case ??? => ???
+        }
 
+        println("===myProcess>>>" + record.key() + ":" + record.value())
+    }
 
-    def monitorProcess[K, V](record: ConsumerRecord[K, V]): Unit = {
-
-//        record match {
-//            case
-//        }
-
-        println("===myProcess>>>" + record.key() + ":" + new String(record.value().asInstanceOf[Array[Byte]]))
+    def doDefaultMonitorFunc(jobId: String, topic: String): Unit = {
+        //action should be send progressMsg.
+        val action =  new Action() { override def exec(): Unit = println("********************ok*******************") }
+        BaseGuardManager.createGuard(jobId, CountGuard(jobId, topic, "http://59.110.31.50:8088", action))
+        BaseGuardManager.openGuard(jobId)
     }
 
 }
