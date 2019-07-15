@@ -7,9 +7,26 @@ import org.scalatest.FunSuite
 
 
 object test extends App {
-    val jobId = "dcs_test1"
-    val topic = "dcs008"
-    val action =  new Action() { override def exec(): Unit = println("********************ok*******************") }
+    val jobId = "JobID002"
+    val topic = "JobID002"
+//    val action = KafkaMsgAction("MonitorResponse", jobId)
+    val action = new Action {
+        override def start(): Unit = {
+            println("start")
+        }
+
+        override def runTime(msg: String): Unit = {
+            println(msg)
+        }
+
+        override def end(): Unit = {
+            println("end")
+        }
+
+        override def error(errorMsg: String): Unit = {
+            println(errorMsg)
+        }
+    }
     BaseGuardManager.createGuard(jobId, CountGuard(jobId, topic, "http://59.110.31.50:8088", action))
     BaseGuardManager.openGuard(jobId)
 }

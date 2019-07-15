@@ -10,5 +10,8 @@ package com.pharbers.kafka.monitor.action
   * @note 一些值得注意的地方
   */
 trait Action {
-    def exec(): Unit
+    def start(): Unit
+    def runTime(msg: String): Unit
+    def end(): Unit
+    def error(errorMsg: String): Unit
 }
