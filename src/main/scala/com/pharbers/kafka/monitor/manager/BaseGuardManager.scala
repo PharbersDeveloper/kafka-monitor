@@ -1,6 +1,7 @@
 package com.pharbers.kafka.monitor.manager
 
 import com.pharbers.kafka.monitor.guard.Guard
+import com.pharbers.kafka.monitor.util.RootLogger
 
 import scala.collection.mutable
 
@@ -24,14 +25,20 @@ object BaseGuardManager extends GuardManager {
     }
 
     override def getGuard(id: String): Guard = {
-        guardMap.getOrElse(id, throw new Exception("no this id"))
+        guardMap.getOrElse(id, throw new Exception("id不存在"))
     }
 
     override def openGuard(id: String): Unit = {
         if (guardMap.contains(id) && !guardMap(id).isOpen) {
             //todo: akka
             guardMap(id).init()
-            guardMap(id).run()
+            RootLogger.logger.info(s"start guard $id")
+            new Thread(guardMap(id)).start()
         }
+    }
+
+    def closeAll(): Unit = {
+        guardMap.values.foreach(x => if (x.isOpen) x.close())
+        guardMap.clear()
     }
 }

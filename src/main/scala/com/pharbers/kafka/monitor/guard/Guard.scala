@@ -9,7 +9,7 @@ package com.pharbers.kafka.monitor.guard
   * @since 2019/07/11 10:43
   * @note 一些值得注意的地方
   */
-trait Guard {
+trait Guard extends Runnable{
     def init(): Unit
 
     def run(): Unit

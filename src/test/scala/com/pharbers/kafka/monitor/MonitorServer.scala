@@ -1,11 +1,13 @@
 package com.pharbers.kafka.monitor
 
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
-import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction}
+import com.pharbers.kafka.monitor.action.KafkaMsgAction
 import com.pharbers.kafka.monitor.guard.CountGuard
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
+import com.pharbers.kafka.monitor.util.RootLogger
 import com.pharbers.kafka.schema.MonitorRequest
 import org.apache.kafka.clients.consumer.ConsumerRecord
+
 
 /**
   * @ ProjectName kafka-monitor.com.pharbers.kafka.monitor.monotorDaemon
@@ -20,10 +22,10 @@ object MonitorServer extends App {
     val pkc = new PharbersKafkaConsumer[String, MonitorRequest](List(monitor_config_obj.REQUEST_TOPIC), 1000, Int.MaxValue, monitorProcess)
     val t = new Thread(pkc)
     try {
-        println("MonitorServer starting!")
+        RootLogger.logger.info("MonitorServer starting!")
         t.start()
 
-        println("MonitorServer is started! Close by enter \"exit\" in console.")
+        RootLogger.logger.info("MonitorServer is started! Close by enter \"exit\" in console.")
         var cmd = Console.readLine()
         while (cmd != "exit") {
             cmd = Console.readLine()
@@ -31,29 +33,29 @@ object MonitorServer extends App {
 
     } catch {
         case ie: InterruptedException => {
-            println(ie.getMessage)
+            RootLogger.logger.error(ie.getMessage)
         }
     } finally {
-        t.stop()
-        println("MonitorServer close!")
+        pkc.close()
+        BaseGuardManager.closeAll()
+        RootLogger.logger.error("MonitorServer close!")
     }
 
     def monitorProcess(record: ConsumerRecord[String, MonitorRequest]): Unit = {
 
-        record.value().strategy.toString match {
+        record.value().getStrategy.toString match {
             case "default" => {
-                doDefaultMonitorFunc(record.value().jobId.toString, record.value().jobId + "-source")
+                doDefaultMonitorFunc(record.value().getJobId.toString, monitor_config_obj.RESPONSE_TOPIC)
             }
 //            case ??? => ???
         }
 
-        println("===myProcess>>>" + record.key() + ":" + record.value())
+        RootLogger.logger.info("===myProcess>>>" + record.key() + ":" + record.value())
     }
 
     def doDefaultMonitorFunc(jobId: String, topic: String): Unit = {
-        //action should be send progressMsg.
         val action =  KafkaMsgAction(topic, jobId)
-        BaseGuardManager.createGuard(jobId, CountGuard(jobId, topic, "http://59.110.31.50:8088", action))
+        BaseGuardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
         BaseGuardManager.openGuard(jobId)
     }
 

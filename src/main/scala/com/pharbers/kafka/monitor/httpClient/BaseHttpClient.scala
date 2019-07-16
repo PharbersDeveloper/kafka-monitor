@@ -3,6 +3,8 @@ import java.io.{BufferedReader, InputStream, InputStreamReader}
 import java.net.{HttpURLConnection, URL}
 import java.nio.charset.StandardCharsets
 
+import com.pharbers.kafka.monitor.exception.HttpRequestException
+
 /** 功能描述
   *
   * @param args 构造参数
@@ -13,9 +15,11 @@ import java.nio.charset.StandardCharsets
   * @note 一些值得注意的地方
   */
 class BaseHttpClient(url: String) extends HttpClient {
-    private val conn = new URL(url).openConnection.asInstanceOf[HttpURLConnection]
+
+    var errorCount = 0
 
     override def post(body: String, contentType: String): InputStream = {
+        val conn = new URL(url).openConnection.asInstanceOf[HttpURLConnection]
         val postDataBytes = body.getBytes(StandardCharsets.UTF_8)
         conn.setRequestMethod("POST")
         conn.setRequestProperty("Content-Type", contentType)
@@ -25,17 +29,27 @@ class BaseHttpClient(url: String) extends HttpClient {
         conn.setDoOutput(true)
         conn.disconnect()
         conn.getOutputStream.write(postDataBytes)
-        if (conn.getResponseCode == 200)  conn.getInputStream
+        if (conn.getResponseCode == 200)  {
+            errorCount = 0
+            conn.getInputStream
+        }
         else {
-            // TODO: 异常处理
-            val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
-            throw new Exception(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
+            errorCount = errorCount + 1
+            if(errorCount > 3){
+                val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
+                throw new HttpRequestException(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
+            }else{
+                val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
+                println(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
+                Thread.sleep(5000)
+                post(body, contentType)
+            }
         }
     }
 
     override def get: InputStream = ???
 
     override def disconnect(): Unit = {
-        conn.disconnect()
+        ???
     }
 }

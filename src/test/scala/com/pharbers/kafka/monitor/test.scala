@@ -26,6 +26,6 @@ object test extends App {
 //            println(errorMsg)
 //        }
 //    }
-    BaseGuardManager.createGuard(jobId, CountGuard(jobId, topic, "http://59.110.31.50:8088", action))
+    BaseGuardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
     BaseGuardManager.openGuard(jobId)
 }

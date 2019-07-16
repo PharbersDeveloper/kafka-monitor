@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="OFF" name="MyApp" packages="">
+    <properties>
+        <property name="LOG_HOME">logs</property>
+        <property name="FILE_NAME">app</property>
+    </properties>
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <Filters>
+                <ThresholdFilter level="all" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+            <PatternLayout>
+                <Pattern>%d %p %m%n</Pattern>
+            </PatternLayout>
+        </Console>
+        <RollingFile name="RollingFile" fileName="${LOG_HOME}/${FILE_NAME}.log"
+                     filePattern="${LOG_HOME}/$${date:yyyy-MM}/${FILE_NAME}-%d{MM-dd-yyyy}-%i.log.gz">
+            <Filters>
+                <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+            <PatternLayout pattern="%d{yyyy-MM-dd 'at' HH:mm:ss z} %-5level %msg%xEx%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="64 MB"/>
+            </Policies>
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <root level="all">
+            <appender-ref ref="Console"/>
+            <appender-ref ref="RollingFile"/>
+        </root>
+    </Loggers>
+</Configuration>
