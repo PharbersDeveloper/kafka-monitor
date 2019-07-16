@@ -6,3 +6,4 @@
 target/
 *.log
 logs
+config/secrets/
