@@ -1,5 +1,8 @@
 package com.pharbers.kafka.monitor.guard
 
+import java.io.BufferedReader
+import java.net.SocketTimeoutException
+
 import com.pharbers.kafka.monitor.action.Action
 import com.pharbers.kafka.monitor.exception.HttpRequestException
 import com.pharbers.kafka.monitor.httpClient.JsonMode.QueryMode
@@ -21,84 +24,47 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     private val sqlId = id.replaceAll("-", "")
 
     override def init(): Unit = {
-        val createStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$id" + "', value_format = 'avro');"
-        //        val createSourceTable = "\"create table " + id + "_table as select count(*) as count from " + id + "_stream group by rowkey;\"," + " \"streamsProperties\": {\n" + "\"ksql.streams.auto.offset.reset\": \"earliest\"}"
-        val createSinkTable = "create stream sink_stream_" + sqlId + " with (kafka_topic = '" + s"recall_$id" + "', value_format = 'avro');"
-        //todo: 配置文件读取url
-        //todo: 结果判断
-        try {
-            val createStreamResponse = KsqlRunner.runSql(createStream, s"$url/ksql")
-            println(createStreamResponse.readLine())
-        } catch {
-            case e: Exception => {
-                open = false
-                action.error(s"create stream error: ${e.getMessage}")
-                throw e
-            }
-        }
-        Thread.sleep(5000)
-        try {
-            val createSinkTableResponse = KsqlRunner.runSql(createSinkTable, s"$url/ksql")
-            println(createSinkTableResponse.readLine())
-        } catch {
-            case e: HttpRequestException => {
-                open = false
-                KsqlRunner.runSql(s"drop stream source_stream_$sqlId;", s"$url/ksql")
-                action.error(s"create stream error: ${e.getMessage}")
-                throw e
-            }
-        }
+        val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$id" + "', value_format = 'avro');"
+        val createSinkStream = "create stream sink_stream_" + sqlId + " with (kafka_topic = '" + s"recall_$id" + "', value_format = 'avro');"
+        createStream(createSourceStream)
+        createStream(createSinkStream)
     }
 
     override def run(): Unit = {
         action.start()
         open = true
-        var sourceCount = 0L
+        var sourceCount = -1L
+        //        var sinkCount = 0L
         var sinkCount = 0L
-        var trueCount = 10
+        var shouldTrueCount = 10
+        var CanErrorCount = 10
 
         val selectSourceCount = s"select count(*) from source_stream_$sqlId group by jobId;"
         val selectSinkCount = s"select sum(count) from sink_stream_$sqlId group by jobId;"
-        //todo: 配置文件读取url
-        //todo: 用jackson生成ksql
-        val sourceRead = try {
-            KsqlRunner.runSql(selectSourceCount, s"$url/query")
-        } catch {
-            case e: HttpRequestException => {
-                close()
-                action.error(s"ksql query error: ${e.getMessage}")
-                throw e
-            }
-        }
-        val sinkRead = try {
-            KsqlRunner.runSql(selectSinkCount, s"$url/query")
-        } catch {
-            case e: HttpRequestException => {
-                close()
-                action.error(s"ksql query error: ${e.getMessage}")
-                throw e
-            }
-        }
+
+        val sourceRead = createQuert(selectSourceCount)
+        val sinkRead = createQuert(selectSinkCount)
         while (isOpen) {
-            val sourceRes = sourceRead.readLine
-            if (sourceRes.length > 0) {
-                val row = JsonHandler.readObject[QueryMode](sourceRes).row
-                sourceCount = row.getColumns.get(0).toLong
+            sourceCount = getCount(sourceRead, sourceCount)
+            sinkCount = getCount(sinkRead, sinkCount)
+
+            try {
+                if (checkCount(sourceCount, sinkCount, shouldTrueCount)) {
+                    shouldTrueCount = shouldTrueCount - 1
+                    RootLogger.logger.debug(s"$id; 还差${shouldTrueCount}次相等")
+                }
+            } catch {
+                case e: Exception =>
+                    RootLogger.logger.error(s"$id; 比较时发生错误, msg：$e")
+                    CanErrorCount = CanErrorCount + 1
             }
-            val sinkRes = sinkRead.readLine
-            if (sinkRes.length > 0) {
-                val row = JsonHandler.readObject[QueryMode](sinkRes).row
-                sinkCount = row.getColumns.get(0).toLong
-            }
-            if (sourceCount == sourceCount) {
-                action.runTime("99")
-                trueCount = trueCount - 1
-            } else {
-                action.runTime((sourceCount / sinkCount * 100).toString)
-            }
-            if (trueCount == 0) {
+            if (shouldTrueCount == 0) {
                 action.runTime("100")
-                action.end()
+                close()
+            }
+            if (CanErrorCount == 0) {
+                RootLogger.logger.error(s"$id; 错误次数到10次")
+                action.error("错误次数到10次")
                 close()
             }
         }
@@ -108,18 +74,92 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
         val dropTables = List(s"drop stream source_stream_$sqlId;", s"drop stream sink_stream_$sqlId;")
         //todo: 结果判断
         try {
-            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql"))
-        }catch {
-            case e: HttpRequestException => RootLogger.logger.error(e.getMessage)
+            //            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
+        } catch {
+            //可能未创建stream就关闭了
+            case e: HttpRequestException => RootLogger.logger.info(e.getMessage)
             case e: Exception =>
                 RootLogger.logger.fatal(e.getMessage)
                 throw e
         }
+        action.end()
         open = false
     }
 
     override def isOpen: Boolean = {
         open
+    }
+
+    private def createStream(ksqlDDL: String): Unit = {
+        try {
+            val createSourceStreamResponse = KsqlRunner.runSql(ksqlDDL, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
+            RootLogger.logger.info(s"$id; ${createSourceStreamResponse.readLine()}")
+        } catch {
+            case e: HttpRequestException =>
+                close()
+                RootLogger.logger.error(s"$id; create stream error: ${e.getMessage}, sql: $ksqlDDL")
+                action.error(s"create stream error: ${e.getMessage}")
+                throw e
+            case e: Exception =>
+                close()
+                RootLogger.logger.error(s"$id; 未知错误: ${e.getMessage}")
+                action.error(s"未知错误: ${e.getMessage}")
+                throw e
+        }
+    }
+
+    private def createQuert(ksqlDML: String): BufferedReader = {
+        try {
+            KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
+        } catch {
+            case e: HttpRequestException =>
+                close()
+                RootLogger.logger.error(s"$id; create query error: ${e.getMessage}, sql: $ksqlDML")
+                action.error(s"ksql query error: ${e.getMessage}, url: $url, sql: $ksqlDML")
+                throw e
+        }
+    }
+
+    private def getCount(reader: BufferedReader, count: Long): Long = {
+        val json = if (reader.ready()) {
+            reader.readLine
+        } else {
+            ""
+        }
+        if (json.length > 0) {
+            val row = JsonHandler.readObject[QueryMode](json).row
+            try{
+                row.getColumns.get(0).toLong
+            }catch {
+                case e: Exception =>
+                    RootLogger.logger.debug(e)
+                    count
+            }
+        } else {
+            count
+        }
+    }
+
+    private def checkCount(sourceCount: Long, sinkCount: Long, trueCount: Int): Boolean = {
+        if (sourceCount == sinkCount) {
+            action.runTime("99")
+            true
+        } else {
+            RootLogger.logger.debug(s"$id; sinkCount: $sinkCount; sourceCount: $sourceCount")
+            //测试用
+            if (sinkCount > 178485 || sourceCount > 178485) {
+                RootLogger.logger.info(s"error: sink: $sinkCount; source: $sourceCount")
+                action.error(s"error:越界 sink: $sinkCount; source: $sourceCount")
+                throw new Exception(s"error:越界 sink: $sinkCount; source: $sourceCount")
+            }
+            if (sinkCount > sourceCount) {
+                action.runTime((1 / (trueCount + 1).toDouble * sourceCount / sinkCount * 100).toInt.toString)
+                false
+            } else {
+                action.runTime((1 / (trueCount + 1).toDouble * (sinkCount + 1) / sourceCount * 100).toInt.toString)
+                false
+            }
+        }
     }
 
 }

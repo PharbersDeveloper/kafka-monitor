@@ -14,4 +14,8 @@ import scala.beans.BeanProperty
 case class QueryRequestMode() {
     @BeanProperty
     var ksql: String = ""
+    @BeanProperty
+    var streamsProperties: java.util.Map[String, String] = new java.util.HashMap()
+//    streamsProperties.put("ksql.streams.auto.offset.reset", "earliest")
+//    streamsProperties.put("ksql.streams.auto.offset.reset", "latest")
 }

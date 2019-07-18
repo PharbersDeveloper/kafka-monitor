@@ -1,7 +1,7 @@
 package com.pharbers.kafka.monitor
 
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
-import com.pharbers.kafka.monitor.action.KafkaMsgAction
+import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction}
 import com.pharbers.kafka.monitor.guard.CountGuard
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
 import com.pharbers.kafka.monitor.util.RootLogger
@@ -55,6 +55,23 @@ object MonitorServer extends App {
 
     def doDefaultMonitorFunc(jobId: String, topic: String): Unit = {
         val action =  KafkaMsgAction(topic, jobId)
+//        val action = new Action() {
+//            override def start(): Unit = {
+//                println("start")
+//            }
+//
+//            override def runTime(msg: String): Unit = {
+//                println(msg)
+//            }
+//
+//            override def end(): Unit = {
+//                println("end")
+//            }
+//
+//            override def error(errorMsg: String): Unit = {
+//                println(errorMsg)
+//            }
+//        }
         BaseGuardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
         BaseGuardManager.openGuard(jobId)
     }
