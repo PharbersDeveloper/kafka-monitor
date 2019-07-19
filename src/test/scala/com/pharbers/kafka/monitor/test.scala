@@ -15,10 +15,13 @@ object test extends App {
 
 
 object testSql extends App {
-    val sql = "show streams;"
-    val reader = KsqlRunner.runSql(sql, s"http://59.110.31.50:8088/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-    reader.ready()
-    while (true){
+    val sql = "select * from test limit 10;"
+    val reader = KsqlRunner.runSql(sql, s"http://59.110.31.50:8088/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
+    while (true) {
+        val a = reader.readLine()
+        if (a == null) {
+            println("ok")
+        }
         println(reader.readLine())
     }
 }

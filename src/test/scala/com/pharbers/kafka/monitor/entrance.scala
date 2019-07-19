@@ -1,9 +1,10 @@
 package com.pharbers.kafka.monitor
 
-import java.util.UUID
+import java.util.{TimerTask, UUID}
 import java.util.concurrent.TimeUnit
 
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
+import com.pharbers.kafka.monitor.manager.BaseGuardManager
 import com.pharbers.kafka.monitor.util.RootLogger
 import com.pharbers.kafka.producer.PharbersKafkaProducer
 import com.pharbers.kafka.schema.{MonitorRequest, MonitorResponse}
@@ -29,7 +30,7 @@ object entrance extends App {
         RootLogger.logger.info(s"START JOB ${jobID}")
         createSourceConnector()
         createSinkConnector()
-        Thread.sleep(10000)
+//        Thread.sleep(10000)
         sendMonitorRequest()
         pollMonitorProgress(jobID)
     }
@@ -114,7 +115,7 @@ object entrance extends App {
                 Thread.sleep(30000)
                 time = time + 1
                 if (time > 50) {
-                    RootLogger.logger.info("error: 程序异常")
+                    RootLogger.logger.error("error: 程序异常")
                     listenMonitor = false
                 }
             }
@@ -139,7 +140,7 @@ object entrance extends App {
             deleteConnectors(record.value().getJobId.toString)
         }
         if(record.value().getError.toString != ""){
-            RootLogger.logger.info(s"收到错误信息后关闭， error：${record.value().getError.toString}")
+            RootLogger.logger.info(s"收到错误信息后关闭，id: ${record.value().getJobId.toString}, error：${record.value().getError.toString}")
         }
     }
 
@@ -156,6 +157,7 @@ object entrance extends App {
         }
 
     }
+
 
 }
 

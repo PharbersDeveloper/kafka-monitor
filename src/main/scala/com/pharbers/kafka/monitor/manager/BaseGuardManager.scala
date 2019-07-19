@@ -18,7 +18,7 @@ object BaseGuardManager extends GuardManager {
     private val guardMap = mutable.Map[String, Guard]()
 
     override def createGuard(id: String, guard: Guard): Guard = {
-        if(guardMap.size > 100){
+        if (guardMap.size > 100) {
             clean()
         }
         guardMap.getOrElse(id, {
@@ -28,7 +28,15 @@ object BaseGuardManager extends GuardManager {
     }
 
     override def getGuard(id: String): Guard = {
-        guardMap.getOrElse(id, throw new Exception("id不存在"))
+        guardMap.getOrElse(id, new Guard {
+            override def init(): Unit = {}
+
+            override def run(): Unit = {}
+
+            override def close(): Unit = {}
+
+            override def isOpen: Boolean = false
+        })
     }
 
     override def openGuard(id: String): Unit = {
@@ -44,7 +52,7 @@ object BaseGuardManager extends GuardManager {
         guardMap.clear()
     }
 
-    def clean(): Unit ={
+    def clean(): Unit = {
         guardMap.keys.foreach(x => if (!guardMap(x).isOpen) guardMap.remove(x))
     }
 }

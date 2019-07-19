@@ -17,7 +17,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
   */
 object MonitorServer extends App {
 
-
     //step 0 开启Kafka-Consumer接收 需要监控的Job信息（参数[JobID]和[监控策略]）
     val pkc = new PharbersKafkaConsumer[String, MonitorRequest](List(monitor_config_obj.REQUEST_TOPIC), 1000, Int.MaxValue, monitorProcess)
     val t = new Thread(pkc)
