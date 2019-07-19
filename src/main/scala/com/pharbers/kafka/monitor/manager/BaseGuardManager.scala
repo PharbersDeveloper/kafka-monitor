@@ -18,6 +18,9 @@ object BaseGuardManager extends GuardManager {
     private val guardMap = mutable.Map[String, Guard]()
 
     override def createGuard(id: String, guard: Guard): Guard = {
+        if(guardMap.size > 100){
+            clean()
+        }
         guardMap.getOrElse(id, {
             guardMap.put(id, guard)
             guard
@@ -30,7 +33,6 @@ object BaseGuardManager extends GuardManager {
 
     override def openGuard(id: String): Unit = {
         if (guardMap.contains(id) && !guardMap(id).isOpen) {
-            //todo: akka
             guardMap(id).init()
             RootLogger.logger.info(s"start guard $id")
             new Thread(guardMap(id)).start()
@@ -40,5 +42,9 @@ object BaseGuardManager extends GuardManager {
     def closeAll(): Unit = {
         guardMap.values.foreach(x => if (x.isOpen) x.close())
         guardMap.clear()
+    }
+
+    def clean(): Unit ={
+        guardMap.keys.foreach(x => if (!guardMap(x).isOpen) guardMap.remove(x))
     }
 }

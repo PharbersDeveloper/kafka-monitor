@@ -14,12 +14,13 @@ import scala.reflect.ClassTag
   * @since 2019/07/18 10:41
   * @note 一些值得注意的地方
   */
-object CleanKql{
+object CleanKql extends App {
 
     /** 功能描述:
       *
-      * @param  name : streams/tables/queries
-      * @param  url : http://59.110.31.50:8088
+      * @param  name   : streams/tables/queries
+      * @param  url    : http://59.110.31.50:8088
+      * @param  filter : 过滤sql语句
       * @return
       * @example
       * @note
@@ -37,14 +38,15 @@ object CleanKql{
                 case "tables" => s"drop table ${elements.next().get("name").asText()};"
                 case _ => ""
             }
-
             KsqlRunner.runSql(deleteSql, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
         }
     }
 
-    def cleanAll(url: String): Unit ={
+    def cleanAll(url: String): Unit = {
         deleteDefinitions("queries", url)
         deleteDefinitions("tables", url)
         deleteDefinitions("streams", url)
     }
+
+    cleanAll("http://59.110.31.50:8088")
 }

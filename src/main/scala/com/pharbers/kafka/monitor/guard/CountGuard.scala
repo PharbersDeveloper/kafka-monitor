@@ -8,6 +8,7 @@ import com.pharbers.kafka.monitor.exception.HttpRequestException
 import com.pharbers.kafka.monitor.httpClient.JsonMode.QueryMode
 import com.pharbers.kafka.monitor.httpClient.{BaseHttpClient, HttpClient}
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
+import com.pharbers.kafka.monitor.util.CleanKql.deleteDefinitions
 import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
 
 /** 功能描述
@@ -25,8 +26,10 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
 
     override def init(): Unit = {
         val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$id" + "', value_format = 'avro');"
+        val createSourceCountTable = "create table source_count_table_" + sqlId + " as select count(*) as count from source_stream_" + sqlId + " group by jobId;"
         val createSinkStream = "create stream sink_stream_" + sqlId + " with (kafka_topic = '" + s"recall_$id" + "', value_format = 'avro');"
         createStream(createSourceStream)
+        createStream(createSourceCountTable)
         createStream(createSinkStream)
     }
 
@@ -39,11 +42,11 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
         var shouldTrueCount = 10
         var CanErrorCount = 10
 
-        val selectSourceCount = s"select count(*) from source_stream_$sqlId group by jobId;"
-        val selectSinkCount = s"select sum(count) from sink_stream_$sqlId group by jobId;"
+        val selectSourceCount = s"select count from source_count_table_$sqlId;"
+        val selectSinkCount = s"select count from sink_stream_$sqlId;"
 
-        val sourceRead = createQuert(selectSourceCount)
-        val sinkRead = createQuert(selectSinkCount)
+        val sourceRead = createQuery(selectSourceCount)
+        val sinkRead = createQuery(selectSinkCount)
         while (isOpen) {
             sourceCount = getCount(sourceRead, sourceCount)
             sinkCount = getCount(sinkRead, sinkCount)
@@ -56,7 +59,8 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
             } catch {
                 case e: Exception =>
                     RootLogger.logger.error(s"$id; 比较时发生错误, msg：$e")
-                    CanErrorCount = CanErrorCount + 1
+                    Thread.sleep(5000)
+                    CanErrorCount = CanErrorCount - 1
             }
             if (shouldTrueCount == 0) {
                 action.runTime("100")
@@ -72,14 +76,13 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
 
     override def close(): Unit = {
         val dropTables = List(s"drop stream source_stream_$sqlId;", s"drop stream sink_stream_$sqlId;")
-        //todo: 结果判断
         try {
             //            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
         } catch {
             //可能未创建stream就关闭了
             case e: HttpRequestException => RootLogger.logger.info(e.getMessage)
             case e: Exception =>
-                RootLogger.logger.fatal(e.getMessage)
+                RootLogger.logger.error("删除创建的ksql资源时发生未知错误",e)
                 throw e
         }
         action.end()
@@ -102,13 +105,13 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
                 throw e
             case e: Exception =>
                 close()
-                RootLogger.logger.error(s"$id; 未知错误: ${e.getMessage}")
-                action.error(s"未知错误: ${e.getMessage}")
+                RootLogger.logger.error(s"$id; 未知错误: $e")
+                action.error(s"未知错误: $e")
                 throw e
         }
     }
 
-    private def createQuert(ksqlDML: String): BufferedReader = {
+    private def createQuery(ksqlDML: String): BufferedReader = {
         try {
             KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
         } catch {
@@ -116,6 +119,16 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
                 close()
                 RootLogger.logger.error(s"$id; create query error: ${e.getMessage}, sql: $ksqlDML")
                 action.error(s"ksql query error: ${e.getMessage}, url: $url, sql: $ksqlDML")
+                throw e
+            case e: SocketTimeoutException =>
+                close()
+                RootLogger.logger.error(s"$id; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
+                action.error(s"ksql query 连接超时: ${e.getMessage}, url: $url, sql: $ksqlDML")
+                throw e
+            case e: Exception =>
+                close()
+                RootLogger.logger.error(s"$id; 未知错误: ${e.getMessage}")
+                action.error(s"未知错误: ${e.getMessage}")
                 throw e
         }
     }
@@ -149,7 +162,6 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
             //测试用
             if (sinkCount > 178485 || sourceCount > 178485) {
                 RootLogger.logger.info(s"error: sink: $sinkCount; source: $sourceCount")
-                action.error(s"error:越界 sink: $sinkCount; source: $sourceCount")
                 throw new Exception(s"error:越界 sink: $sinkCount; source: $sourceCount")
             }
             if (sinkCount > sourceCount) {
@@ -161,5 +173,14 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
             }
         }
     }
+
+//    private def cleanKsqlSource(): Unit ={
+//        def filter(sql: String): Boolean ={
+//
+//        }
+//        deleteDefinitions("queries", url)(filter)
+//        deleteDefinitions("tables", url)(filter)
+//        deleteDefinitions("streams", url)(filter)
+//    }
 
 }

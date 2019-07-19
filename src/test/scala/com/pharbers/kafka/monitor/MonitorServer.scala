@@ -72,8 +72,12 @@ object MonitorServer extends App {
 //                println(errorMsg)
 //            }
 //        }
-        BaseGuardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
-        BaseGuardManager.openGuard(jobId)
+        try{
+            BaseGuardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
+            BaseGuardManager.openGuard(jobId)
+        }catch {
+            case e: Exception => RootLogger.logger.error("创建监控失败", e)
+        }
     }
 
 }

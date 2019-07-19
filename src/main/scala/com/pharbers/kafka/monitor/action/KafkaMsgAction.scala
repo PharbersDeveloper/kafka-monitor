@@ -32,11 +32,12 @@ case class KafkaMsgAction(topic: String, id: String) extends Action with Runnabl
 
     override def end(): Unit = {
         producerOpen = false
-        RootLogger.logger.info("end")
+        RootLogger.logger.info("KafkaMsgAction end")
     }
 
     override def error(errorMsg: String): Unit = {
         RootLogger.logger.info(s"发送错误信息：$errorMsg")
+        Thread.sleep(3000)
         producer.produce(topic, s"$id:error", new MonitorResponse(id, 100L, errorMsg))
     }
 

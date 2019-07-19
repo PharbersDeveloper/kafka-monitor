@@ -16,5 +16,9 @@ trait GuardManager {
 
     def getGuard(id: String): Guard
 
-    def openGuard(id: String): Unit
+    def openGuard(id: String)
+
+    def closeAll()
+
+    def clean()
 }
