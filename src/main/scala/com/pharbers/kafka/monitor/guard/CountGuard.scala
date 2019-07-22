@@ -2,7 +2,7 @@ package com.pharbers.kafka.monitor.guard
 
 import java.io.BufferedReader
 import java.net.SocketTimeoutException
-import java.util.{Timer, TimerTask}
+import java.util.{Timer, TimerTask, UUID}
 
 import com.pharbers.kafka.monitor.action.Action
 import com.pharbers.kafka.monitor.exception.HttpRequestException
@@ -24,6 +24,7 @@ import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
 case class CountGuard(id: String, url: String, action: Action) extends Guard {
     private var open = false
     private val sqlId = id.replaceAll("-", "")
+    private val overTime: Long = 1000 * 60 * 2
 
     override def init(): Unit = {
         val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$id" + "', value_format = 'avro');"
@@ -35,7 +36,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     override def run(): Unit = {
         action.start()
         open = true
-        new Timer().schedule(new RestartGuard(id, action), 1000 * 60 * 10)
+        new Timer().schedule(new RestartGuard(id, action), overTime)
         var sourceCount = -1L
         //        var sinkCount = 0L
         var sinkCount = 0L
@@ -79,7 +80,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     }
 
     override def close(): Unit = {
-        val dropTables = List(s"drop stream source_stream_$sqlId delete topic", s"drop stream sink_stream_$sqlId delete topic;")
+        val dropTables = List(s"drop stream source_stream_$sqlId delete topic;", s"drop stream sink_stream_$sqlId delete topic;")
         try {
             dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
         } catch {
@@ -91,6 +92,8 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
         }
         action.end()
         open = false
+        //todo: 测试用，因为只有一个监控，所以直接关闭全部,之后应该只关闭相关的
+        BaseGuardManager.closeAll()
     }
 
     override def isOpen: Boolean = {
@@ -184,9 +187,9 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
             //todo: 这儿不能直接用BaseGuardManager，需要多态，按配置使用不同的GuardManager
             val guard = BaseGuardManager.getGuard(id)
             if (guard.isOpen) {
-                RootLogger.logger.error(s"$id,guard超时，关闭")
-                action.error(s"$id,guard超时，关闭")
-                guard.close()
+                RootLogger.logger.info(s"$id,guard超时未完成，开启一个新的")
+                BaseGuardManager.createGuard(UUID.randomUUID().toString, CountGuard(id, url, action))
+                BaseGuardManager.openGuard(UUID.randomUUID().toString)
             }
         }
     }

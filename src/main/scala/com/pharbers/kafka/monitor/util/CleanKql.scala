@@ -34,8 +34,8 @@ object CleanKql extends App {
         while (elements.hasNext) {
             val deleteSql = name match {
                 case "queries" => s"terminate ${elements.next().get("id").asText()};"
-                case "streams" => s"drop stream ${elements.next().get("name").asText()};"
-                case "tables" => s"drop table ${elements.next().get("name").asText()};"
+                case "streams" => s"drop stream ${elements.next().get("name").asText()} delete topic;"
+                case "tables" => s"drop table ${elements.next().get("name").asText()} delete topic;"
                 case _ => ""
             }
             KsqlRunner.runSql(deleteSql, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))

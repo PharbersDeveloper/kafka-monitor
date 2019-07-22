@@ -32,14 +32,12 @@ object testSql extends App {
 
 object testKsqlCount extends App {
     val id = "c304e36134394921b321339a8ac7331a"
-    val count = 2
+    val count = 1
     (1 to count).map { x =>
         RootLogger.logger.debug(s"第${x}次start")
         val createStream = s"create stream stream$x$id with " + s"(kafka_topic = 'source_$id', value_format = 'avro');"
-        val createTable = s"create table table$x$id  as select count(*) as count from stream$x$id  group by jobid;"
-        val query = s"select count from table$x$id;"
+        val query = s"select count(*) as count from stream$x$id  group by jobid;"
         KsqlRunner.runSql(createStream, "http://59.110.31.50:8088/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-        KsqlRunner.runSql(createTable, "http://59.110.31.50:8088/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
         val reader = KsqlRunner.runSql(query, "http://59.110.31.50:8088/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
         reader
     }.zipWithIndex.foreach{reader =>

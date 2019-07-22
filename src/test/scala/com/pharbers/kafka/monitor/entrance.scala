@@ -24,15 +24,15 @@ object entrance extends App {
     val excelFile: String = "_data17w.xlsx"
     var listenMonitor: Boolean = false
 
-    (1 to 1).foreach(x => {
+    (1 to 100).foreach(x => {
         RootLogger.logger.info(s"第${x}次")
         jobID = UUID.randomUUID().toString.replaceAll("-", "")
         RootLogger.logger.info(s"START JOB ${jobID}")
         createSourceConnector()
         createSinkConnector()
-//        Thread.sleep(10000)
-//        sendMonitorRequest()
-//        pollMonitorProgress(jobID)
+        Thread.sleep(10000)
+        sendMonitorRequest()
+        pollMonitorProgress(jobID)
     }
     )
 

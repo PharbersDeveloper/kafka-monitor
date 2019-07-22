@@ -3,7 +3,7 @@ package com.pharbers.kafka.monitor
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
 import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction}
 import com.pharbers.kafka.monitor.guard.CountGuard
-import com.pharbers.kafka.monitor.manager.BaseGuardManager
+import com.pharbers.kafka.monitor.manager.{BaseGuardManager, GuardManager}
 import com.pharbers.kafka.monitor.util.RootLogger
 import com.pharbers.kafka.schema.MonitorRequest
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -16,7 +16,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
   * @ Description: TODO
   */
 object MonitorServer extends App {
-
+    val guardManager: GuardManager = BaseGuardManager
     //step 0 开启Kafka-Consumer接收 需要监控的Job信息（参数[JobID]和[监控策略]）
     val pkc = new PharbersKafkaConsumer[String, MonitorRequest](List(monitor_config_obj.REQUEST_TOPIC), 1000, Int.MaxValue, monitorProcess)
     val t = new Thread(pkc)
@@ -36,7 +36,7 @@ object MonitorServer extends App {
         }
     } finally {
         pkc.close()
-        BaseGuardManager.closeAll()
+        guardManager.closeAll()
         RootLogger.logger.error("MonitorServer close!")
     }
 
@@ -72,8 +72,8 @@ object MonitorServer extends App {
 //            }
 //        }
         try{
-            BaseGuardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
-            BaseGuardManager.openGuard(jobId)
+            guardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
+            guardManager.openGuard(jobId)
         }catch {
             case e: Exception => RootLogger.logger.error("创建监控失败", e)
         }

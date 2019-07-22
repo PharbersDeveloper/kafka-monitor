@@ -49,7 +49,7 @@ object BaseGuardManager extends GuardManager {
 
     def closeAll(): Unit = {
         guardMap.values.foreach(x => if (x.isOpen) x.close())
-        guardMap.clear()
+        clean()
     }
 
     def clean(): Unit = {
