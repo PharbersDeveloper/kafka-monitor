@@ -35,53 +35,58 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     override def run(): Unit = {
         action.start()
         open = true
-        new Timer().schedule(new RestartGuard(id, action), 1000 * 60 * 25)
+        new Timer().schedule(new RestartGuard(id, action), 1000 * 60 * 10)
         var sourceCount = -1L
         //        var sinkCount = 0L
         var sinkCount = 0L
         var shouldTrueCount = 10
         var CanErrorCount = 10
 
-        val selectSourceCount = s"select count(*), max(rowTime) from source_stream_$sqlId group by jobId;"
+        val selectSourceCount = s"select count(*) from source_stream_$sqlId group by jobId;"
         val selectSinkCount = s"select count from sink_stream_$sqlId;"
 
         val sourceRead = createQuery(selectSourceCount)
         val sinkRead = createQuery(selectSinkCount)
-        while (isOpen) {
-            sourceCount = getCount(sourceRead, sourceCount)
-            sinkCount = getCount(sinkRead, sinkCount)
+        try {
+            while (isOpen) {
+                sourceCount = getCount(sourceRead, sourceCount)
+                sinkCount = getCount(sinkRead, sinkCount)
 
-            try {
-                if (checkCount(sourceCount, sinkCount, shouldTrueCount)) {
-                    shouldTrueCount = shouldTrueCount - 1
-                    RootLogger.logger.debug(s"$id; 还差${shouldTrueCount}次相等")
+                try {
+                    if (checkCount(sourceCount, sinkCount, shouldTrueCount)) {
+                        shouldTrueCount = shouldTrueCount - 1
+                        RootLogger.logger.debug(s"$id; 还差${shouldTrueCount}次相等")
+                    }
+                } catch {
+                    case e: Exception =>
+                        RootLogger.logger.error(s"$id; 比较时发生错误, msg：$e")
+                    //                    CanErrorCount = CanErrorCount - 1
                 }
-            } catch {
-                case e: Exception =>
-                    RootLogger.logger.error(s"$id; 比较时发生错误, msg：$e")
-//                    CanErrorCount = CanErrorCount - 1
+                if (shouldTrueCount == 0) {
+                    action.runTime("100")
+                    close()
+                }
+                if (CanErrorCount == 0) {
+                    RootLogger.logger.error(s"$id; 错误次数到10次")
+                    action.error("错误次数到10次")
+                    close()
+                }
             }
-            if (shouldTrueCount == 0) {
-                action.runTime("100")
-                close()
-            }
-            if (CanErrorCount == 0) {
-                RootLogger.logger.error(s"$id; 错误次数到10次")
-                action.error("错误次数到10次")
-                close()
-            }
+        } finally {
+            sourceRead.close()
+            sinkRead.close()
         }
     }
 
     override def close(): Unit = {
         val dropTables = List(s"drop stream source_stream_$sqlId delete topic", s"drop stream sink_stream_$sqlId delete topic;")
         try {
-            //            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
+            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
         } catch {
             //可能未创建stream就关闭了
             case e: HttpRequestException => RootLogger.logger.info(e.getMessage)
             case e: Exception =>
-                RootLogger.logger.error("删除创建的ksql资源时发生未知错误",e)
+                RootLogger.logger.error("删除创建的ksql资源时发生未知错误", e)
                 throw e
         }
         action.end()
@@ -113,7 +118,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     private def createQuery(ksqlDML: String): BufferedReader = {
         try {
             KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-//            KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "latest"))
+            //            KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "latest"))
         } catch {
             case e: HttpRequestException =>
                 close()
@@ -141,9 +146,9 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
         }
         if (json.length > 0) {
             val row = JsonHandler.readObject[QueryMode](json).row
-            try{
+            try {
                 row.getColumns.get(0).toLong
-            }catch {
+            } catch {
                 case e: Exception =>
                     RootLogger.logger.debug(e)
                     count
@@ -162,7 +167,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
             //测试用
             if (sinkCount > 178485 || sourceCount > 178485) {
                 RootLogger.logger.debug(s"error: sink: $sinkCount; source: $sourceCount")
-//                throw new Exception(s"error:越界 sink: $sinkCount; source: $sourceCount")
+                //                throw new Exception(s"error:越界 sink: $sinkCount; source: $sourceCount")
             }
             if (sinkCount > sourceCount) {
                 action.runTime((1 / (trueCount + 1).toDouble * sourceCount / sinkCount * 100).toInt.toString)
@@ -174,15 +179,16 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
         }
     }
 
-class RestartGuard(id: String, action: Action) extends TimerTask{
-    override def run(): Unit = {
-        val guard = BaseGuardManager.getGuard(id)
-        if(guard.isOpen){
-            RootLogger.logger.error(s"$id,guard超时，关闭")
-            action.error(s"$id,guard超时，关闭")
-            guard.close()
+    class RestartGuard(id: String, action: Action) extends TimerTask {
+        override def run(): Unit = {
+            //todo: 这儿不能直接用BaseGuardManager，需要多态，按配置使用不同的GuardManager
+            val guard = BaseGuardManager.getGuard(id)
+            if (guard.isOpen) {
+                RootLogger.logger.error(s"$id,guard超时，关闭")
+                action.error(s"$id,guard超时，关闭")
+                guard.close()
+            }
         }
     }
-}
 
 }

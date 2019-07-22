@@ -24,15 +24,15 @@ object entrance extends App {
     val excelFile: String = "_data17w.xlsx"
     var listenMonitor: Boolean = false
 
-    (1 to 100).foreach(x => {
+    (1 to 1).foreach(x => {
         RootLogger.logger.info(s"第${x}次")
         jobID = UUID.randomUUID().toString.replaceAll("-", "")
         RootLogger.logger.info(s"START JOB ${jobID}")
         createSourceConnector()
         createSinkConnector()
 //        Thread.sleep(10000)
-        sendMonitorRequest()
-        pollMonitorProgress(jobID)
+//        sendMonitorRequest()
+//        pollMonitorProgress(jobID)
     }
     )
 
@@ -73,9 +73,10 @@ object entrance extends App {
                        |    "name": "${jobID}-hdfs-sink-connector",
                        |    "config": {
                        |        "connector.class": "io.confluent.connect.hdfs.HdfsSinkConnector",
-                       |        "tasks.max": "1",
+                       |        "tasks.max": "6",
                        |        "topics": "source_${jobID}",
                        |        "jobId": "${jobID}",
+                       |        "format.class": "io.confluent.connect.hdfs.parquet.ParquetFormat",
                        |        "hdfs.url": "hdfs://192.168.100.137:9000/logs/testLogs/",
                        |        "rotate.interval.ms":1000,
                        |    	"flush.size": "2000"
