@@ -15,6 +15,7 @@ import com.pharbers.kafka.monitor.util.RootLogger
   * @since 2019/07/11 11:12
   * @note 一些值得注意的地方
   */
+//todo： 这个是java原生的httpClient，很多功能都没有， 可以考虑换okhttp
 class BaseHttpClient(url: String) extends HttpClient {
 
     var errorCount = 0

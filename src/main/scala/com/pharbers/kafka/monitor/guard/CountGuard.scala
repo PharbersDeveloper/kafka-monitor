@@ -7,9 +7,7 @@ import java.util.{Timer, TimerTask, UUID}
 import com.pharbers.kafka.monitor.action.Action
 import com.pharbers.kafka.monitor.exception.HttpRequestException
 import com.pharbers.kafka.monitor.httpClient.JsonMode.QueryMode
-import com.pharbers.kafka.monitor.httpClient.{BaseHttpClient, HttpClient}
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
-import com.pharbers.kafka.monitor.util.CleanKql.deleteDefinitions
 import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
 
 /** 功能描述
@@ -48,7 +46,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
         val selectSinkCount = s"select count from sink_stream_$sqlId;"
 //todo：测试用，等待1分钟，等待source完成
         Thread.sleep(1000 * 60)
-
+        RootLogger.logger.info(s"$jobId; 开始query")
         val sourceRead = createQuery(selectSourceCount)
         val sinkRead = createQuery(selectSinkCount)
         try {
