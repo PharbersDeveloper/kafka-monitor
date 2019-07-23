@@ -115,7 +115,7 @@ object entrance extends App {
             while (listenMonitor) {
                 Thread.sleep(30000)
                 time = time + 1
-                if (time > 50) {
+                if (time > 120) {
                     RootLogger.logger.error("error: 程序异常")
                     //todo: 测试用防止泄露，以后需要把超时关闭写到Guard中
                     BaseGuardManager.closeAll()

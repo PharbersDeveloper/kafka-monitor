@@ -24,7 +24,8 @@ import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
 case class CountGuard(jobId: String, url: String, action: Action, id: String = "") extends Guard {
     private var open = false
     private val sqlId = if(id == "") jobId else id
-    private val overTime: Long = 1000 * 60 * 10
+    //todo： 超时设置应该可配置化
+    private val overTime: Long = 1000 * 60 * 30
 
     override def init(): Unit = {
         val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
