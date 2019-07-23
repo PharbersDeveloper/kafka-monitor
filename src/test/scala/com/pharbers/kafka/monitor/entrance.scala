@@ -21,7 +21,8 @@ object entrance extends App {
 
     //传参
     var jobID: String = ""
-    val excelFile: String = "_data17w.xlsx"
+    //    val excelFile: String = "_data17w.xlsx"
+    val excelFile: String = "_data79w.xlsx"
     var listenMonitor: Boolean = false
 
     (1 to 100).foreach(x => {
@@ -30,7 +31,6 @@ object entrance extends App {
         RootLogger.logger.info(s"START JOB ${jobID}")
         createSourceConnector()
         createSinkConnector()
-        Thread.sleep(10000)
         sendMonitorRequest()
         pollMonitorProgress(jobID)
     }
@@ -111,12 +111,14 @@ object entrance extends App {
             t.start()
 
             RootLogger.logger.info("PollMonitorProgress is started! Close by enter \"exit\" in console.")
-//            var cmd = Console.readLine()
+            //            var cmd = Console.readLine()
             while (listenMonitor) {
                 Thread.sleep(30000)
                 time = time + 1
                 if (time > 50) {
                     RootLogger.logger.error("error: 程序异常")
+                    //todo: 测试用防止泄露，以后需要把超时关闭写到Guard中
+                    BaseGuardManager.closeAll()
                     listenMonitor = false
                 }
             }
@@ -140,7 +142,7 @@ object entrance extends App {
             listenMonitor = false
             deleteConnectors(record.value().getJobId.toString)
         }
-        if(record.value().getError.toString != ""){
+        if (record.value().getError.toString != "") {
             RootLogger.logger.info(s"收到错误信息后关闭，id: ${record.value().getJobId.toString}, error：${record.value().getError.toString}")
         }
     }
@@ -148,13 +150,13 @@ object entrance extends App {
 
     //Step ？ 结束或发生异常时删除管道
     def deleteConnectors(jobID: String): Unit = {
-        try{
+        try {
             val deleteSourceConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-oss-source-connector").method("DELETE").asString
             RootLogger.logger.info(deleteSourceConnectorResult)
             val deleteSinkConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-hdfs-sink-connector").method("DELETE").asString
             RootLogger.logger.info(deleteSinkConnectorResult)
         } catch {
-            case e: Exception =>  RootLogger.logger.error(e.getMessage)
+            case e: Exception => RootLogger.logger.error(e.getMessage)
         }
 
     }

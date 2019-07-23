@@ -43,7 +43,7 @@ class BaseHttpClient(url: String) extends HttpClient {
             }else{
                 val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
                 RootLogger.logger.error(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
-                Thread.sleep(5000)
+                Thread.sleep(10000)
                 post(body, contentType)
             }
         }

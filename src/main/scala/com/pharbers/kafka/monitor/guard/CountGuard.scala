@@ -21,14 +21,14 @@ import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
   * @since 2019/07/11 11:05
   * @note 一些值得注意的地方
   */
-case class CountGuard(id: String, url: String, action: Action) extends Guard {
+case class CountGuard(jobId: String, url: String, action: Action, id: String = "") extends Guard {
     private var open = false
-    private val sqlId = id.replaceAll("-", "")
-    private val overTime: Long = 1000 * 60 * 2
+    private val sqlId = if(id == "") jobId else id
+    private val overTime: Long = 1000 * 60 * 10
 
     override def init(): Unit = {
-        val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$id" + "', value_format = 'avro');"
-        val createSinkStream = "create stream sink_stream_" + sqlId + " with (kafka_topic = '" + s"recall_$id" + "', value_format = 'avro');"
+        val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
+        val createSinkStream = "create stream sink_stream_" + sqlId + " with (kafka_topic = '" + s"recall_$jobId" + "', value_format = 'avro');"
         createStream(createSourceStream)
         createStream(createSinkStream)
     }
@@ -36,7 +36,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     override def run(): Unit = {
         action.start()
         open = true
-        new Timer().schedule(new RestartGuard(id, action), overTime)
+        new Timer().schedule(new RestartGuard(jobId, action), overTime)
         var sourceCount = -1L
         //        var sinkCount = 0L
         var sinkCount = 0L
@@ -45,6 +45,8 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
 
         val selectSourceCount = s"select count(*) from source_stream_$sqlId group by jobId;"
         val selectSinkCount = s"select count from sink_stream_$sqlId;"
+//todo：测试用，等待1分钟，等待source完成
+        Thread.sleep(1000 * 60)
 
         val sourceRead = createQuery(selectSourceCount)
         val sinkRead = createQuery(selectSinkCount)
@@ -56,11 +58,11 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
                 try {
                     if (checkCount(sourceCount, sinkCount, shouldTrueCount)) {
                         shouldTrueCount = shouldTrueCount - 1
-                        RootLogger.logger.debug(s"$id; 还差${shouldTrueCount}次相等")
+                        RootLogger.logger.debug(s"$jobId; 还差${shouldTrueCount}次相等")
                     }
                 } catch {
                     case e: Exception =>
-                        RootLogger.logger.error(s"$id; 比较时发生错误, msg：$e")
+                        RootLogger.logger.error(s"$jobId; 比较时发生错误, msg：$e")
                     //                    CanErrorCount = CanErrorCount - 1
                 }
                 if (shouldTrueCount == 0) {
@@ -68,7 +70,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
                     close()
                 }
                 if (CanErrorCount == 0) {
-                    RootLogger.logger.error(s"$id; 错误次数到10次")
+                    RootLogger.logger.error(s"$jobId; 错误次数到10次")
                     action.error("错误次数到10次")
                     close()
                 }
@@ -80,6 +82,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     }
 
     override def close(): Unit = {
+        //todo: 这儿不应该删除topic，应该有单独的topic删除
         val dropTables = List(s"drop stream source_stream_$sqlId delete topic;", s"drop stream sink_stream_$sqlId delete topic;")
         try {
             dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
@@ -103,16 +106,16 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
     private def createStream(ksqlDDL: String): Unit = {
         try {
             val createSourceStreamResponse = KsqlRunner.runSql(ksqlDDL, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-            RootLogger.logger.info(s"$id; ${createSourceStreamResponse.readLine()}")
+            RootLogger.logger.info(s"$jobId; ${createSourceStreamResponse.readLine()}")
         } catch {
             case e: HttpRequestException =>
                 close()
-                RootLogger.logger.error(s"$id; create stream error: ${e.getMessage}, sql: $ksqlDDL")
+                RootLogger.logger.error(s"$jobId; create stream error: ${e.getMessage}, sql: $ksqlDDL")
                 action.error(s"create stream error: ${e.getMessage}")
                 throw e
             case e: Exception =>
                 close()
-                RootLogger.logger.error(s"$id; 未知错误: $e")
+                RootLogger.logger.error(s"$jobId; 未知错误: $e")
                 action.error(s"未知错误: $e")
                 throw e
         }
@@ -125,17 +128,17 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
         } catch {
             case e: HttpRequestException =>
                 close()
-                RootLogger.logger.error(s"$id; create query error: ${e.getMessage}, sql: $ksqlDML")
+                RootLogger.logger.error(s"$jobId; create query error: ${e.getMessage}, sql: $ksqlDML")
                 action.error(s"ksql query error: ${e.getMessage}, url: $url, sql: $ksqlDML")
                 throw e
             case e: SocketTimeoutException =>
                 close()
-                RootLogger.logger.error(s"$id; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
+                RootLogger.logger.error(s"$jobId; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
                 action.error(s"ksql query 连接超时: ${e.getMessage}, url: $url, sql: $ksqlDML")
                 throw e
             case e: Exception =>
                 close()
-                RootLogger.logger.error(s"$id; 未知错误: ${e.getMessage}")
+                RootLogger.logger.error(s"$jobId; 未知错误: ${e.getMessage}")
                 action.error(s"未知错误: ${e.getMessage}")
                 throw e
         }
@@ -166,7 +169,7 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
             action.runTime("99")
             true
         } else {
-            RootLogger.logger.debug(s"$id; sinkCount: $sinkCount; sourceCount: $sourceCount")
+            RootLogger.logger.debug(s"$jobId; sinkCount: $sinkCount; sourceCount: $sourceCount")
             //测试用
             if (sinkCount > 178485 || sourceCount > 178485) {
                 RootLogger.logger.debug(s"error: sink: $sinkCount; source: $sourceCount")
@@ -182,14 +185,15 @@ case class CountGuard(id: String, url: String, action: Action) extends Guard {
         }
     }
 
-    class RestartGuard(id: String, action: Action) extends TimerTask {
+    class RestartGuard(jobId: String, action: Action) extends TimerTask {
         override def run(): Unit = {
             //todo: 这儿不能直接用BaseGuardManager，需要多态，按配置使用不同的GuardManager
-            val guard = BaseGuardManager.getGuard(id)
+            val guard = BaseGuardManager.getGuard(sqlId)
             if (guard.isOpen) {
+                val id = UUID.randomUUID().toString.replaceAll("-", "")
                 RootLogger.logger.info(s"$id,guard超时未完成，开启一个新的")
-                BaseGuardManager.createGuard(UUID.randomUUID().toString, CountGuard(id, url, action))
-                BaseGuardManager.openGuard(UUID.randomUUID().toString)
+                BaseGuardManager.createGuard(id, CountGuard(jobId, url, action, id))
+                BaseGuardManager.openGuard(id)
             }
         }
     }
