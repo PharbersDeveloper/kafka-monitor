@@ -14,7 +14,7 @@ import scala.reflect.ClassTag
   * @note 一些值得注意的地方
   */
 object JsonHandler {
-    private lazy val objectMapper = new ObjectMapper()
+    lazy val objectMapper = new ObjectMapper()
     def readObject[T: ClassTag](json: String): T =
         objectMapper.readValue(json, implicitly[ClassTag[T]].runtimeClass).asInstanceOf[T]
 

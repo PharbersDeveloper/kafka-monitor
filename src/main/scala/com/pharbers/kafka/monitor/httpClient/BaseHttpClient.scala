@@ -4,6 +4,7 @@ import java.net.{HttpURLConnection, URL}
 import java.nio.charset.StandardCharsets
 
 import com.pharbers.kafka.monitor.exception.HttpRequestException
+import com.pharbers.kafka.monitor.util.RootLogger
 
 /** 功能描述
   *
@@ -29,18 +30,19 @@ class BaseHttpClient(url: String) extends HttpClient {
         conn.setDoOutput(true)
         conn.disconnect()
         conn.getOutputStream.write(postDataBytes)
+
         if (conn.getResponseCode == 200)  {
             errorCount = 0
             conn.getInputStream
         }
         else {
             errorCount = errorCount + 1
-            if(errorCount > 3){
+            if(errorCount > 10){
                 val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
                 throw new HttpRequestException(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
             }else{
                 val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
-                println(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
+                RootLogger.logger.error(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
                 Thread.sleep(5000)
                 post(body, contentType)
             }
