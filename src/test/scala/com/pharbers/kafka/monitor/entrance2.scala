@@ -1,10 +1,9 @@
 package com.pharbers.kafka.monitor
 
-import java.util.{TimerTask, UUID}
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
-import com.pharbers.kafka.monitor.manager.BaseGuardManager
 import com.pharbers.kafka.monitor.util.RootLogger
 import com.pharbers.kafka.producer.PharbersKafkaProducer
 import com.pharbers.kafka.schema.{MonitorRequest, MonitorResponse}
@@ -17,11 +16,12 @@ import scalaj.http.{Http, HttpOptions}
   * @ date 19-7-12
   * @ Description: TODO
   */
-object entrance extends App {
+object entrance2 extends App {
 
     //传参
     var jobID: String = ""
-    val excelFile: String = "_data17w.xlsx"
+    val hdfsPath: String = "hdfs://192.168.100.137:9000/logs/testLogs/parquet/topics/test_005/partition=0/"
+    val esUrl: String = "http://192.168.100.157:9200"
     var listenMonitor: Boolean = false
 
     (1 to 1).foreach(x => {
@@ -42,18 +42,17 @@ object entrance extends App {
                 .postData(
                     s"""
                        |{
-                       |    "name": "${jobID}-oss-source-connector",
+                       |    "name": "${jobID}-hdfs-source-connector",
                        |    "config": {
-                       |        "connector.class": "com.pharbers.kafka.connect.oss.OssExcelSourceConnector",
+                       |        "connector.class": "com.github.mmolimar.kafka.connect.fs.FsSourceConnector",
                        |        "tasks.max": "1",
-                       |        "topic": "source_${jobID}",
+                       |        "policy.class": "com.github.mmolimar.kafka.connect.fs.policy.SimplePolicy",
+                       |        "policy.recursive": "true",
+                       |        "policy.regexp": ".*",
+                       |        "file_reader.class": "com.github.mmolimar.kafka.connect.fs.file.reader.ParquetFileReader",
+                       |        "fs.uris": "${hdfsPath}",
                        |        "jobId": "${jobID}",
-                       |        "batch.size": 3000,
-                       |        "endpoint": "oss-cn-beijing.aliyuncs.com",
-                       |        "accessKeyId": "LTAIEoXgk4DOHDGi",
-                       |        "accessKeySecret": "x75sK6191dPGiu9wBMtKE6YcBBh8EI",
-                       |        "bucketName": "pharbers-resources",
-                       |        "key": "${excelFile}"
+                       |        "topic": "source_${jobID}"
                        |    }
                        |}
             """.stripMargin)
@@ -69,15 +68,15 @@ object entrance extends App {
                 .postData(
                     s"""
                        |{
-                       |    "name": "${jobID}-hdfs-sink-connector",
+                       |    "name": "${jobID}-es-sink-connector",
                        |    "config": {
-                       |        "connector.class": "io.confluent.connect.hdfs.HdfsSinkConnector",
-                       |        "tasks.max": "1",
                        |        "topics": "source_${jobID}",
                        |        "jobId": "${jobID}",
-                       |        "hdfs.url": "hdfs://192.168.100.137:9000/logs/testLogs/",
-                       |        "rotate.interval.ms":1000,
-                       |    	"flush.size": "2000"
+                       |        "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+                       |		"tasks.max": "1",
+                       |		"key.ignore": "true",
+                       |		"connection.url": "${esUrl}",
+                       |		"type.name": ""
                        |    }
                        |}
             """.stripMargin)
@@ -147,9 +146,9 @@ object entrance extends App {
     //Step ？ 结束或发生异常时删除管道
     def deleteConnectors(jobID: String): Unit = {
         try{
-            val deleteSourceConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-oss-source-connector").method("DELETE").asString
+            val deleteSourceConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-hdfs-source-connector").method("DELETE").asString
             RootLogger.logger.info(deleteSourceConnectorResult)
-            val deleteSinkConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-hdfs-sink-connector").method("DELETE").asString
+            val deleteSinkConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-es-sink-connector").method("DELETE").asString
             RootLogger.logger.info(deleteSinkConnectorResult)
         } catch {
             case e: Exception =>  RootLogger.logger.error(e.getMessage)
