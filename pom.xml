@@ -7,7 +7,7 @@
   <properties>
     <scala.version>2.11.8</scala.version>
     <scalaBinaryVersion>2.11</scalaBinaryVersion>
-    <scalatest.version>3.0.1</scalatest.version>
+    <scalatest.version>2.2.5</scalatest.version>
     <log4j.version>2.11.2</log4j.version>
     <jackson.version>2.9.9</jackson.version>
   </properties>
@@ -60,12 +60,12 @@
       <version>${jackson.version}</version>
     </dependency>
 
-    <!--test-->
+    <!--httpClient-->
+    <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
     <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_${scalaBinaryVersion}</artifactId>
-      <version>${scalatest.version}</version>
-      <scope>test</scope>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>3.14.0</version>
     </dependency>
 
     <!--log4j-->
@@ -79,26 +79,30 @@
       <artifactId>log4j-core</artifactId>
       <version>${log4j.version}</version>
     </dependency>
+
+    <!--test-->
     <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.4</version>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_${scalaBinaryVersion}</artifactId>
+      <version>${scalatest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.specs</groupId>
-      <artifactId>specs</artifactId>
-      <version>1.2.5</version>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-stdlib-jdk8</artifactId>
+      <version>${kotlin.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains.kotlin</groupId>
+      <artifactId>kotlin-test</artifactId>
+      <version>${kotlin.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
+    <sourceDirectory>src/main/scala</sourceDirectory>
+    <testSourceDirectory>src/test/scala</testSourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -108,24 +112,24 @@
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-maven-plugin</artifactId>
-        <version>1.0</version>
-        <configuration>
-          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
-          <junitxml>.</junitxml>
-          <filereports>WDF TestSuite.txt</filereports>
-        </configuration>
-        <executions>
-          <execution>
-            <id>test</id>
-            <goals>
-              <goal>test</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+      <!--<plugin>-->
+        <!--<groupId>org.scalatest</groupId>-->
+        <!--<artifactId>scalatest-maven-plugin</artifactId>-->
+        <!--<version>1.0</version>-->
+        <!--<configuration>-->
+          <!--<reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>-->
+          <!--<junitxml>.</junitxml>-->
+          <!--<filereports>WDF TestSuite.txt</filereports>-->
+        <!--</configuration>-->
+        <!--<executions>-->
+          <!--<execution>-->
+            <!--<id>test</id>-->
+            <!--<goals>-->
+              <!--<goal>test</goal>-->
+            <!--</goals>-->
+          <!--</execution>-->
+        <!--</executions>-->
+      <!--</plugin>-->
     </plugins>
   </build>
 </project>

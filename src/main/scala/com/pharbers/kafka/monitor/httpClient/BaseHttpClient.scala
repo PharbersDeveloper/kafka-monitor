@@ -29,7 +29,7 @@ class BaseHttpClient(url: String) extends HttpClient {
         conn.setConnectTimeout(60000)
         conn.setReadTimeout(60000)
         conn.setDoOutput(true)
-        conn.disconnect()
+//        conn.disconnect()
         conn.getOutputStream.write(postDataBytes)
 
         if (conn.getResponseCode == 200)  {

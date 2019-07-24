@@ -21,17 +21,17 @@ object entrance extends App {
 
     //传参
     var jobID: String = ""
-    //    val excelFile: String = "_data17w.xlsx"
+//        val excelFile: String = "_data17w.xlsx"
     val excelFile: String = "_data79w.xlsx"
     var listenMonitor: Boolean = false
 
-    (1 to 100).foreach(x => {
+    (1 to 2).foreach(x => {
         RootLogger.logger.info(s"第${x}次")
         jobID = UUID.randomUUID().toString.replaceAll("-", "")
         RootLogger.logger.info(s"START JOB ${jobID}")
         createSourceConnector()
         createSinkConnector()
-        sendMonitorRequest()
+        sendMonitorRequest(jobID, "default")
         pollMonitorProgress(jobID)
     }
     )
@@ -91,9 +91,9 @@ object entrance extends App {
 
     //step 3 向MonitorServer发送这次JobID的监控请求（Kafka Producer）（前提要确保MonitorServer已经启动!）
     // 请求参数（[JobID]和[监控策略]）
-    def sendMonitorRequest(): Unit = {
+    def sendMonitorRequest(jobId: String, strategy: String): Unit = {
         val pkp = new PharbersKafkaProducer[String, MonitorRequest]
-        val record = new MonitorRequest(jobID, "default")
+        val record = new MonitorRequest(jobID, strategy)
         val fu = pkp.produce(monitor_config_obj.REQUEST_TOPIC, jobID, record)
         RootLogger.logger.info(fu.get(10, TimeUnit.SECONDS))
     }
@@ -116,9 +116,8 @@ object entrance extends App {
                 Thread.sleep(30000)
                 time = time + 1
                 if (time > 120) {
-                    RootLogger.logger.error("error: 程序异常")
-                    //todo: 测试用防止泄露，以后需要把超时关闭写到Guard中
-                    BaseGuardManager.closeAll()
+                    RootLogger.logger.error("error: 程序异常超时未完成")
+                    sendMonitorRequest(jobID, "close")
                     listenMonitor = false
                 }
             }

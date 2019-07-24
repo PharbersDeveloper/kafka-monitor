@@ -22,6 +22,7 @@ object KsqlRunner {
         ksql.setStreamsProperties(JavaConversions.mapAsJavaMap(map))
         val ksqlJson = JsonHandler.writeJson(ksql)
         val contentType = "application/vnd.ksql.v1+json"
+        //todo： 根据配置选择
         val httpClient: HttpClient = new BaseHttpClient(url)
         new BufferedReader(new InputStreamReader(httpClient.post(ksqlJson, contentType), StandardCharsets.UTF_8))
 

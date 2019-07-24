@@ -23,7 +23,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
     private var open = false
     private val sqlId = if(id == "") jobId else id
     //todo： 超时设置应该可配置化
-    private val overTime: Long = 1000 * 60 * 30
+    private val overTime: Long = 1000 * 60 * 40
 
     override def init(): Unit = {
         val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
@@ -42,7 +42,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
         var shouldTrueCount = 10
         var CanErrorCount = 10
 
-        val selectSourceCount = s"select count(*) from source_stream_$sqlId group by jobId;"
+        val selectSourceCount = s"select count(*) from source_stream_$sqlId group by rowkey;"
         val selectSinkCount = s"select count from sink_stream_$sqlId;"
 //todo：测试用，等待1分钟，等待source完成
         Thread.sleep(1000 * 60)
@@ -51,6 +51,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
         val sinkRead = createQuery(selectSinkCount)
         try {
             while (isOpen) {
+                RootLogger.logger.debug(s"isopen: $open")
                 sourceCount = getCount(sourceRead, sourceCount)
                 sinkCount = getCount(sinkRead, sinkCount)
 
@@ -62,7 +63,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
                 } catch {
                     case e: Exception =>
                         RootLogger.logger.error(s"$jobId; 比较时发生错误, msg：$e")
-                    //                    CanErrorCount = CanErrorCount - 1
+                        CanErrorCount = CanErrorCount - 1
                 }
                 if (shouldTrueCount == 0) {
                     action.runTime("100")
@@ -93,9 +94,8 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
                 throw e
         }
         action.end()
+        RootLogger.logger.error(s"$sqlId,关闭countGuard")
         open = false
-        //todo: 测试用，因为只有一个监控，所以直接关闭全部,之后应该只关闭相关的
-        BaseGuardManager.closeAll()
     }
 
     override def isOpen: Boolean = {
@@ -169,11 +169,6 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
             true
         } else {
             RootLogger.logger.debug(s"$jobId; sinkCount: $sinkCount; sourceCount: $sourceCount")
-            //测试用
-            if (sinkCount > 178485 || sourceCount > 178485) {
-                RootLogger.logger.debug(s"error: sink: $sinkCount; source: $sourceCount")
-                //                throw new Exception(s"error:越界 sink: $sinkCount; source: $sourceCount")
-            }
             if (sinkCount > sourceCount) {
                 action.runTime((1 / (trueCount + 1).toDouble * sourceCount / sinkCount * 100).toInt.toString)
                 false
@@ -193,6 +188,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
                 RootLogger.logger.info(s"$id,guard超时未完成，开启一个新的")
                 BaseGuardManager.createGuard(id, CountGuard(jobId, url, action, id))
                 BaseGuardManager.openGuard(id)
+                close()
             }
         }
     }

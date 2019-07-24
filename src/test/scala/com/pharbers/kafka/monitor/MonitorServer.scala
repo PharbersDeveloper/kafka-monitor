@@ -43,10 +43,12 @@ object MonitorServer extends App {
     def monitorProcess(record: ConsumerRecord[String, MonitorRequest]): Unit = {
 
         record.value().getStrategy.toString match {
-            case "default" => {
+            case "default" =>
                 doDefaultMonitorFunc(record.value().getJobId.toString, monitor_config_obj.RESPONSE_TOPIC)
-            }
-//            case ??? => ???
+            //todo: 按照jobid删除相关的（会有由jobId任务重试的任务，需要一起关掉）
+            case "close" => closeAll()
+
+            //            case ??? => ???
         }
 
         RootLogger.logger.info("===myProcess>>>" + record.key() + ":" + record.value())
@@ -77,6 +79,11 @@ object MonitorServer extends App {
         }catch {
             case e: Exception => RootLogger.logger.error("创建监控失败", e)
         }
+    }
+
+    def closeAll(): Unit ={
+        //todo: 按照jobId删除相关的（会有由jobId任务重试的任务，需要一起关掉）
+        guardManager.closeAll()
     }
 
 }
