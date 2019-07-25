@@ -2,13 +2,14 @@ package com.pharbers.kafka.monitor.guard
 
 import java.io.BufferedReader
 import java.net.SocketTimeoutException
-import java.util.{Timer, TimerTask, UUID}
+import java.util.{Date, Timer, TimerTask, UUID}
 
 import com.pharbers.kafka.monitor.action.Action
 import com.pharbers.kafka.monitor.exception.HttpRequestException
 import com.pharbers.kafka.monitor.httpClient.JsonMode.QueryMode
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
 import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
+import org.apache.logging.log4j.LogManager
 
 /** 功能描述
   *
@@ -21,13 +22,12 @@ import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
   */
 case class CountGuard(jobId: String, url: String, action: Action, id: String = "") extends Guard {
     private var open = false
-    private val sqlId = if(id == "") jobId else id
-    //todo： 超时设置应该可配置化
-    private val overTime: Long = 1000 * 60 * 40
+    private val guardId = if(id == "") jobId else id
+    private val logger = LogManager.getLogger(this.getClass)
 
     override def init(): Unit = {
-        val createSourceStream = "create stream source_stream_" + sqlId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
-        val createSinkStream = "create stream sink_stream_" + sqlId + " with (kafka_topic = '" + s"recall_$jobId" + "', value_format = 'avro');"
+        val createSourceStream = "create stream source_stream_" + guardId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
+        val createSinkStream = "create stream sink_stream_" + guardId + " with (kafka_topic = '" + s"recall_$jobId" + "', value_format = 'avro');"
         createStream(createSourceStream)
         createStream(createSinkStream)
     }
@@ -35,66 +35,70 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
     override def run(): Unit = {
         action.start()
         open = true
-        new Timer().schedule(new RestartGuard(jobId, action), overTime)
         var sourceCount = -1L
-        //        var sinkCount = 0L
         var sinkCount = 0L
-        var shouldTrueCount = 10
+        var shouldTrueCount = 20
         var CanErrorCount = 10
 
-        val selectSourceCount = s"select count(*) from source_stream_$sqlId group by rowkey;"
-        val selectSinkCount = s"select count from sink_stream_$sqlId;"
+        val selectSourceCount = s"select count(*) from source_stream_$guardId group by rowkey;"
+        val selectSinkCount = s"select count from sink_stream_$guardId;"
 //todo：测试用，等待1分钟，等待source完成
         Thread.sleep(1000 * 60)
-        RootLogger.logger.info(s"$jobId; 开始query")
+        val startTime = new Date().getTime
+        logger.info(s"$jobId; 开始query")
         val sourceRead = createQuery(selectSourceCount)
         val sinkRead = createQuery(selectSinkCount)
         try {
-            while (isOpen) {
-                RootLogger.logger.debug(s"isopen: $open")
-                sourceCount = getCount(sourceRead, sourceCount)
-                sinkCount = getCount(sinkRead, sinkCount)
-
+            while (isOpen && shouldTrueCount != 0 && CanErrorCount != 0) {
+                logger.debug(s"isopen: $open")
+                val resSourceCount = getCount(sourceRead, sourceCount)
+                val resSinkCount = getCount(sinkRead, sinkCount)
+                if(resSourceCount > sourceCount || resSinkCount > sinkCount){
+                    sourceCount = resSourceCount
+                    //todo: 暂时这么写，因为会有0
+                    if(resSinkCount > sinkCount) sinkCount = resSinkCount
+                } else {
+                    Thread.sleep(1000)
+                }
                 try {
                     if (checkCount(sourceCount, sinkCount, shouldTrueCount)) {
                         shouldTrueCount = shouldTrueCount - 1
-                        RootLogger.logger.debug(s"$jobId; 还差${shouldTrueCount}次相等")
+                        logger.debug(s"$jobId; 还差${shouldTrueCount}次相等")
                     }
                 } catch {
                     case e: Exception =>
-                        RootLogger.logger.error(s"$jobId; 比较时发生错误, msg：$e")
+                        logger.error(s"$jobId; 比较时发生错误, msg：$e")
                         CanErrorCount = CanErrorCount - 1
                 }
-                if (shouldTrueCount == 0) {
-                    action.runTime("100")
-                    close()
-                }
-                if (CanErrorCount == 0) {
-                    RootLogger.logger.error(s"$jobId; 错误次数到10次")
-                    action.error("错误次数到10次")
-                    close()
-                }
+                speedCheck(startTime, (sourceCount + sinkCount) / 2)
             }
         } finally {
             sourceRead.close()
             sinkRead.close()
         }
+        if (shouldTrueCount == 0) {
+            action.runTime("100")
+        }
+        if (CanErrorCount == 0) {
+            logger.error(s"$jobId; 错误次数到10次")
+            action.error("错误次数到10次")
+        }
+        close()
     }
 
     override def close(): Unit = {
-        //todo: 这儿不应该删除topic，应该有单独的topic删除
-        val dropTables = List(s"drop stream source_stream_$sqlId delete topic;", s"drop stream sink_stream_$sqlId delete topic;")
+        val dropTables = List(s"drop stream source_stream_$guardId;", s"drop stream sink_stream_$guardId;")
         try {
             dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
         } catch {
             //可能未创建stream就关闭了
-            case e: HttpRequestException => RootLogger.logger.info(e.getMessage)
+            case e: HttpRequestException => logger.info(e.getMessage)
             case e: Exception =>
-                RootLogger.logger.error("删除创建的ksql资源时发生未知错误", e)
+                logger.error("删除创建的ksql资源时发生未知错误", e)
                 throw e
         }
         action.end()
-        RootLogger.logger.error(s"$sqlId,关闭countGuard")
+        logger.info(s"$jobId,关闭countGuard")
         open = false
     }
 
@@ -105,16 +109,16 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
     private def createStream(ksqlDDL: String): Unit = {
         try {
             val createSourceStreamResponse = KsqlRunner.runSql(ksqlDDL, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-            RootLogger.logger.info(s"$jobId; ${createSourceStreamResponse.readLine()}")
+            logger.info(s"$jobId; ${createSourceStreamResponse.readLine()}")
         } catch {
             case e: HttpRequestException =>
                 close()
-                RootLogger.logger.error(s"$jobId; create stream error: ${e.getMessage}, sql: $ksqlDDL")
+                logger.error(s"$jobId; create stream error: ${e.getMessage}, sql: $ksqlDDL")
                 action.error(s"create stream error: ${e.getMessage}")
                 throw e
             case e: Exception =>
                 close()
-                RootLogger.logger.error(s"$jobId; 未知错误: $e")
+                logger.error(s"$jobId; 未知错误: $e")
                 action.error(s"未知错误: $e")
                 throw e
         }
@@ -123,21 +127,20 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
     private def createQuery(ksqlDML: String): BufferedReader = {
         try {
             KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-            //            KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "latest"))
         } catch {
             case e: HttpRequestException =>
                 close()
-                RootLogger.logger.error(s"$jobId; create query error: ${e.getMessage}, sql: $ksqlDML")
+                logger.error(s"$jobId; create query error: ${e.getMessage}, sql: $ksqlDML")
                 action.error(s"ksql query error: ${e.getMessage}, url: $url, sql: $ksqlDML")
                 throw e
             case e: SocketTimeoutException =>
                 close()
-                RootLogger.logger.error(s"$jobId; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
+                logger.error(s"$jobId; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
                 action.error(s"ksql query 连接超时: ${e.getMessage}, url: $url, sql: $ksqlDML")
                 throw e
             case e: Exception =>
                 close()
-                RootLogger.logger.error(s"$jobId; 未知错误: ${e.getMessage}")
+                logger.error(s"$jobId; 未知错误: ${e.getMessage}")
                 action.error(s"未知错误: ${e.getMessage}")
                 throw e
         }
@@ -155,7 +158,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
                 row.getColumns.get(0).toLong
             } catch {
                 case e: Exception =>
-                    RootLogger.logger.debug(e)
+                    logger.debug(e)
                     count
             }
         } else {
@@ -168,7 +171,7 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
             action.runTime("99")
             true
         } else {
-            RootLogger.logger.debug(s"$jobId; sinkCount: $sinkCount; sourceCount: $sourceCount")
+            logger.debug(s"$jobId; sinkCount: $sinkCount; sourceCount: $sourceCount")
             if (sinkCount > sourceCount) {
                 action.runTime((1 / (trueCount + 1).toDouble * sourceCount / sinkCount * 100).toInt.toString)
                 false
@@ -179,18 +182,26 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
         }
     }
 
-    class RestartGuard(jobId: String, action: Action) extends TimerTask {
-        override def run(): Unit = {
-            //todo: 这儿不能直接用BaseGuardManager，需要多态，按配置使用不同的GuardManager
-            val guard = BaseGuardManager.getGuard(sqlId)
-            if (guard.isOpen) {
-                val id = UUID.randomUUID().toString.replaceAll("-", "")
-                RootLogger.logger.info(s"$id,guard超时未完成，开启一个新的")
-                BaseGuardManager.createGuard(id, CountGuard(jobId, url, action, id))
-                BaseGuardManager.openGuard(id)
-                close()
-            }
+    private def speedCheck(startTime: Long, count: Long): Unit ={
+        val checkTime = (new Date().getTime - startTime) / 1000
+        val countAvgOfSecond = Math.abs(count + 1) / checkTime
+        logger.debug(s"$jobId, 运行时间：$checkTime， speed: $countAvgOfSecond")
+        //todo: 消除魔法值，应该可配置
+        if(countAvgOfSecond < 283 && checkTime > 1000 * 60){
+            restart()
         }
     }
 
+    private def restart(): Unit = {
+        val id = UUID.randomUUID().toString.replaceAll("-", "")
+        logger.info(s"$jobId,guard超时未完成，开启一个新的")
+        try {
+            BaseGuardManager.createGuard(id, CountGuard(jobId, url, action, id))
+            BaseGuardManager.openGuard(id)
+            close()
+        } catch {
+            case e: Exception => RootLogger.logger.error(s"jobid: $jobId, id: $guardId, 重启监控失败", e)
+        }
+
+    }
 }

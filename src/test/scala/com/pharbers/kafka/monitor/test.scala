@@ -37,46 +37,6 @@ object testSql extends App {
     }
 }
 
-object testKsqlCount extends App {
-    val id = "c304e36134394921b321339a8ac7331a"
-    val count = 1
-    (1 to count).map { x =>
-        RootLogger.logger.debug(s"第${x}次start")
-        val createStream = s"create stream stream$x$id with " + s"(kafka_topic = 'source_$id', value_format = 'avro');"
-        val query = s"select count(*) as count from stream$x$id  group by jobid;"
-        KsqlRunner.runSql(createStream, "http://59.110.31.50:8088/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-        val reader = KsqlRunner.runSql(query, "http://59.110.31.50:8088/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-        reader
-    }.zipWithIndex.foreach{reader =>
-        var open = true
-        while (open){
-            var ref = 0L
-            val json = if (reader._1.ready()) {
-                reader._1.readLine
-            } else {
-                ""
-            }
-            if (json.length > 0) {
-                val row = JsonHandler.readObject[QueryMode](json).row
-                try {
-                    ref = row.getColumns.get(0).toLong
-                } catch {
-                    case e: Exception =>
-                        RootLogger.logger.debug(e)
-                }
-            }
-            if (ref == 178485L) {
-                RootLogger.logger.debug("成功", s"第${reader._2}次")
-                open = false
-            } else if (ref > 178485L) {
-                RootLogger.logger.error(s"失败, count: ${ref}第${reader._2}次")
-                open = false
-            }
-        }
-    }
-
-
-}
 
 class testHttp extends FunSuite{
     import okhttp3._
@@ -88,7 +48,13 @@ class testHttp extends FunSuite{
         ksql.setStreamsProperties(JavaConversions.mapAsJavaMap(Map("ksql.streams.auto.offset.reset" -> "earliest")))
         val ksqlJson = JsonHandler.writeJson(ksql)
         val contentType = "application/vnd.ksql.v1+json"
-        val client = new OkHttpClient().newBuilder().readTimeout(100, TimeUnit.SECONDS ).build()
+        import okhttp3.OkHttpClient
+        import java.util.concurrent.TimeUnit
+        val builder = new OkHttpClient.Builder()
+        builder.connectTimeout(5, TimeUnit.MINUTES).writeTimeout(5, TimeUnit.MINUTES).readTimeout(5, TimeUnit.MINUTES)
+
+        val client = builder.build
+//        val client = new OkHttpClient().newBuilder().connectTimeout(100, TimeUnit.SECONDS).callTimeout(100, TimeUnit.SECONDS ).readTimeout(100, TimeUnit.SECONDS ).build()
 
         val request = new Request.Builder()
                 .addHeader("content-type", contentType)
@@ -96,10 +62,11 @@ class testHttp extends FunSuite{
                 .post(RequestBody.create(ksqlJson,MediaType.parse("application/json; charset=utf-8")))
                 .build()
         val response = client.newCall(request).execute()
-        val array: Array[Byte] = new Array(1024)
+        val array: Array[Byte] = new Array(1024 * 10)
         val buffer = new Buffer()
 //        println(response.body().source().read(array))
-
+        val source = response.body().source()
+        source.read(array)
         println(response.body().source().read(array))
         println(buffer)
 //        val read = new BufferedReader(new InputStreamReader(response.body().source().inputStream(), StandardCharsets.UTF_8))

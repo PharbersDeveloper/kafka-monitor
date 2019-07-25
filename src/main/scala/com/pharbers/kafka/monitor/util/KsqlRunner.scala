@@ -25,7 +25,5 @@ object KsqlRunner {
         //todo： 根据配置选择
         val httpClient: HttpClient = new BaseHttpClient(url)
         new BufferedReader(new InputStreamReader(httpClient.post(ksqlJson, contentType), StandardCharsets.UTF_8))
-
-
     }
 }

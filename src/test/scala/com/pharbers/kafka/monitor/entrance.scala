@@ -20,12 +20,13 @@ import scalaj.http.{Http, HttpOptions}
 object entrance extends App {
 
     //传参
+    val count = 2
     var jobID: String = ""
-//        val excelFile: String = "_data17w.xlsx"
-    val excelFile: String = "_data79w.xlsx"
+        val excelFile: String = "_data17w.xlsx"
+//    val excelFile: String = "_data79w.xlsx"
     var listenMonitor: Boolean = false
 
-    (1 to 2).foreach(x => {
+    (1 to count).foreach(x => {
         RootLogger.logger.info(s"第${x}次")
         jobID = UUID.randomUUID().toString.replaceAll("-", "")
         RootLogger.logger.info(s"START JOB ${jobID}")
