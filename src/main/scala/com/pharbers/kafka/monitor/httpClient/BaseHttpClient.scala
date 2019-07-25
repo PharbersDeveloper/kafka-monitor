@@ -38,7 +38,7 @@ class BaseHttpClient(url: String) extends HttpClient {
         }
         else {
             errorCount = errorCount + 1
-            if(errorCount > 10){
+            if(errorCount > 20){
                 val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
                 throw new HttpRequestException(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
             }else{
