@@ -21,10 +21,13 @@ object BaseGuardManager extends GuardManager {
         if (guardMap.size > 100) {
             clean()
         }
-        guardMap.getOrElse(id, {
-            guardMap.put(id, guard)
-            guard
-        })
+        //为防止kafka消息重复，不允许创建之前已经接收过的id
+        //需要保证即使是重新执行任务也要生成新的id
+        if (guardMap.contains(id)) {
+            throw new Exception("监控已经创建过了，即使是重新执行任务也要生成新的id")
+        }
+        guardMap.put(id, guard)
+        guard
     }
 
     override def getGuard(id: String): Guard = {

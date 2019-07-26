@@ -20,10 +20,11 @@ import scalaj.http.{Http, HttpOptions}
 object entrance extends App {
 
     //传参
-    val count = 2
+    val count = 40
     var jobID: String = ""
-        val excelFile: String = "_data17w.xlsx"
+//        val excelFile: String = "_data17w.xlsx"
 //    val excelFile: String = "_data79w.xlsx"
+    val excelFile: String = "gycx_1048576_full.xlsx"
     var listenMonitor: Boolean = false
 
     (1 to count).foreach(x => {
@@ -122,12 +123,10 @@ object entrance extends App {
                     listenMonitor = false
                 }
             }
-
         } catch {
             case ie: InterruptedException => {
                 RootLogger.logger.error(ie.getMessage)
                 pkc.close()
-                deleteConnectors(jobID)
             }
         } finally {
             pkc.close()

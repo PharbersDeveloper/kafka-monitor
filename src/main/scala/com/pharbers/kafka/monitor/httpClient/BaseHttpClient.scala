@@ -32,7 +32,9 @@ class BaseHttpClient(url: String) extends HttpClient {
 //        conn.disconnect()
         conn.getOutputStream.write(postDataBytes)
 
+        //todo: 作为client应该让调用来处理返回的异常码
         if (conn.getResponseCode == 200)  {
+            //todo： 这儿是个共享变量，貌似有并发问题
             errorCount = 0
             conn.getInputStream
         }
@@ -43,6 +45,7 @@ class BaseHttpClient(url: String) extends HttpClient {
                 throw new HttpRequestException(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
             }else{
                 val read = new BufferedReader(new InputStreamReader(conn.getErrorStream, StandardCharsets.UTF_8))
+                //todo： log不应该全部用root配置
                 RootLogger.logger.error(s"error code: ${conn.getResponseCode}; error msg: ${read.readLine()}")
                 Thread.sleep(10000)
                 post(body, contentType)

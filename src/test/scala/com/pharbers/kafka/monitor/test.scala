@@ -41,7 +41,7 @@ object testSql extends App {
 class testHttp extends FunSuite{
     import okhttp3._
     test("okhttp call ksql"){
-        val sql = "select * from test;"
+        val sql = "select * from test limit 1;"
 //        val sql = "show streams;"
         val ksql = QueryRequestMode()
         ksql.setKsql(sql)
@@ -57,8 +57,12 @@ class testHttp extends FunSuite{
 //        val client = new OkHttpClient().newBuilder().connectTimeout(100, TimeUnit.SECONDS).callTimeout(100, TimeUnit.SECONDS ).readTimeout(100, TimeUnit.SECONDS ).build()
 
         val request = new Request.Builder()
-                .addHeader("content-type", contentType)
                 .url("http://59.110.31.50:8088/query")
+                .addHeader("Host", "59.110.31.50:8088")
+                .addHeader("Accept", "text/html,image/gif,image/jpeg,*;q=.2,*/*;q=.2")
+                .addHeader("Connection", "keep-alive")
+                .addHeader("Content-Type", contentType)
+                .addHeader("Content-Length", String.valueOf(ksqlJson.getBytes(StandardCharsets.UTF_8).length))
                 .post(RequestBody.create(ksqlJson,MediaType.parse("application/json; charset=utf-8")))
                 .build()
         val response = client.newCall(request).execute()
@@ -68,7 +72,7 @@ class testHttp extends FunSuite{
         val source = response.body().source()
         source.read(array)
         println(response.body().source().read(array))
-        println(buffer)
+        println(new String(array))
 //        val read = new BufferedReader(new InputStreamReader(response.body().source().inputStream(), StandardCharsets.UTF_8))
 //        val read = response.body().charStream()
 //        while (true){

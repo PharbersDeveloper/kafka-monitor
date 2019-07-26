@@ -53,10 +53,9 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
                 logger.debug(s"isopen: $open")
                 val resSourceCount = getCount(sourceRead, sourceCount)
                 val resSinkCount = getCount(sinkRead, sinkCount)
-                if(resSourceCount > sourceCount || resSinkCount > sinkCount){
+                if(resSourceCount != sourceCount || resSinkCount != sinkCount){
                     sourceCount = resSourceCount
-                    //todo: 暂时这么写，因为会有0
-                    if(resSinkCount > sinkCount) sinkCount = resSinkCount
+                    sinkCount = resSinkCount
                 } else {
                     Thread.sleep(1000)
                 }
@@ -187,14 +186,15 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
         val countAvgOfSecond = Math.abs(count + 1) / checkTime
         logger.debug(s"$jobId, 运行时间：$checkTime， speed: $countAvgOfSecond")
         //todo: 消除魔法值，应该可配置
-        if(countAvgOfSecond < 283 && checkTime > 1000 * 60){
+        if(countAvgOfSecond < 283 && checkTime > 120){
             restart()
         }
     }
 
     private def restart(): Unit = {
+        //todo: 这样创建的监控如果没有正常运行关闭，就会无限运行下去
         val id = UUID.randomUUID().toString.replaceAll("-", "")
-        logger.info(s"$jobId,guard超时未完成，开启一个新的")
+        logger.info(s"$jobId,guard超时未完成，开启一个新的， id: $id")
         try {
             BaseGuardManager.createGuard(id, CountGuard(jobId, url, action, id))
             BaseGuardManager.openGuard(id)

@@ -55,25 +55,10 @@ object MonitorServer extends App {
     }
 
     def doDefaultMonitorFunc(jobId: String, topic: String): Unit = {
+        RootLogger.logger.info(s"jobid; $jobId; 开始创建监控")
         val action =  KafkaMsgAction(topic, jobId)
-//        val action = new Action() {
-//            override def start(): Unit = {
-//                println("start")
-//            }
-//
-//            override def runTime(msg: String): Unit = {
-//                println(msg)
-//            }
-//
-//            override def end(): Unit = {
-//                println("end")
-//            }
-//
-//            override def error(errorMsg: String): Unit = {
-//                println(errorMsg)
-//            }
-//        }
         try{
+            //todo: 错误时没有正常退出
             guardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
             guardManager.openGuard(jobId)
         }catch {
