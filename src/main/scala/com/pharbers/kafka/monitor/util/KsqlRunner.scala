@@ -47,4 +47,8 @@ object KsqlRunner {
                 }
         }
     }
+
+    def asynchronousTunSql(sql: String, url: String, map: Map[String, String], maxReCallNum: Int = config.get("ksqlHttpClient").get("defaultMaxRecall").asInt(20)): Unit ={
+
+    }
 }
