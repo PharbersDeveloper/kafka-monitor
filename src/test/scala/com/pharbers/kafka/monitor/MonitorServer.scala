@@ -4,7 +4,6 @@ import com.pharbers.kafka.consumer.PharbersKafkaConsumer
 import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction}
 import com.pharbers.kafka.monitor.guard.CountGuard
 import com.pharbers.kafka.monitor.manager.{BaseGuardManager, GuardManager}
-import com.pharbers.kafka.monitor.util.RootLogger
 import com.pharbers.kafka.schema.MonitorRequest
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.logging.log4j.LogManager

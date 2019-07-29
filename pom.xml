@@ -87,23 +87,13 @@
       <version>${scalatest.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.jetbrains.kotlin</groupId>
-      <artifactId>kotlin-stdlib-jdk8</artifactId>
-      <version>${kotlin.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.jetbrains.kotlin</groupId>
-      <artifactId>kotlin-test</artifactId>
-      <version>${kotlin.version}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
     <sourceDirectory>src/main/scala</sourceDirectory>
     <testSourceDirectory>src/test/scala</testSourceDirectory>
     <plugins>
+      <!--自动测试-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -112,23 +102,90 @@
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
+
+      <!--主类声明-->
+     <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>lib/</classpathPrefix><!--声明主类使用类库的相对目录名称-->
+              <mainClass>com.pharbers.kafka.monitor.main</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <!--依赖类库复制插件-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <!--${project.build.directory}是项目构建完成后的根目录，可执行的Jar在此目录-->
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>false</overWriteSnapshots>
+              <overWriteIfNewer>true</overWriteIfNewer>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--添加拷贝依赖到可执行Jar的插件-->
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <appendAssemblyId>false</appendAssemblyId>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <archive>
+            <manifest>
+              <mainClass>com.altamob.LogicLauncher</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--dockerfile-->
       <!--<plugin>-->
-        <!--<groupId>org.scalatest</groupId>-->
-        <!--<artifactId>scalatest-maven-plugin</artifactId>-->
-        <!--<version>1.0</version>-->
-        <!--<configuration>-->
-          <!--<reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>-->
-          <!--<junitxml>.</junitxml>-->
-          <!--<filereports>WDF TestSuite.txt</filereports>-->
-        <!--</configuration>-->
+        <!--<groupId>com.spotify</groupId>-->
+        <!--<artifactId>dockerfile-maven-plugin</artifactId>-->
+        <!--<version>1.4.10</version>-->
         <!--<executions>-->
           <!--<execution>-->
-            <!--<id>test</id>-->
+            <!--<id>default</id>-->
             <!--<goals>-->
-              <!--<goal>test</goal>-->
+              <!--<goal>build</goal>-->
+              <!--<goal>push</goal>-->
             <!--</goals>-->
           <!--</execution>-->
         <!--</executions>-->
+        <!--<configuration>-->
+          <!--<repository>spotify/foobar</repository>-->
+          <!--<tag>${project.version}</tag>-->
+          <!--<buildArgs>-->
+            <!--<JAR_FILE>${project.build.finalName}.jar</JAR_FILE>-->
+          <!--</buildArgs>-->
+        <!--</configuration>-->
       <!--</plugin>-->
     </plugins>
   </build>

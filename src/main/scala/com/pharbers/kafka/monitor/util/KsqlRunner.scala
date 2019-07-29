@@ -1,6 +1,6 @@
 package com.pharbers.kafka.monitor.util
 
-import java.io.{BufferedReader, InputStreamReader}
+import java.io.{BufferedReader, InputStream, InputStreamReader}
 import java.nio.charset.StandardCharsets
 
 import com.pharbers.kafka.monitor.httpClient.{BaseHttpClient, HttpClient}
@@ -33,14 +33,14 @@ object KsqlRunner {
         val httpClient: HttpClient = HttpClient(config.get("ksqlHttpClient").get("name").asText("BaseHttpClient"))
                 .build(Map("url" -> url))
         try {
-            new BufferedReader(new InputStreamReader(httpClient.post(ksqlJson, contentType), StandardCharsets.UTF_8))
+            callKsql(httpClient, ksqlJson, contentType)
         } catch {
             case e: Exception =>
                 reCallNum += 1
                 if (reCallNum < maxReCallNum) {
                     logger.info(s"recall, recallNum: $reCallNum, maxRecallNum: $maxReCallNum")
                     Thread.sleep(10000)
-                    new BufferedReader(new InputStreamReader(httpClient.post(ksqlJson, contentType), StandardCharsets.UTF_8))
+                    callKsql(httpClient, ksqlJson, contentType)
                 } else {
                     logger.error(s"recall $reCallNum 次后失败， maxRecallNum: $maxReCallNum")
                     throw e
@@ -50,5 +50,9 @@ object KsqlRunner {
 
     def asynchronousTunSql(sql: String, url: String, map: Map[String, String], maxReCallNum: Int = config.get("ksqlHttpClient").get("defaultMaxRecall").asInt(20)): Unit ={
 
+    }
+
+    private def callKsql(httpClient: HttpClient, ksqlJson: String, contentType: String): BufferedReader ={
+        new BufferedReader(new InputStreamReader(httpClient.post(ksqlJson, contentType), StandardCharsets.UTF_8))
     }
 }
