@@ -13,7 +13,7 @@ import com.pharbers.kafka.schema.MonitorResponse
   * @since 2019/07/15 10:29
   * @note 一些值得注意的地方
   */
-case class KafkaMsgAction(topic: String, id: String) extends Action with Runnable{
+case class KafkaMsgAction(topic: String, id: String) extends Action with Runnable with Cloneable{
     lazy val producer = new PharbersKafkaProducer[String, MonitorResponse]
     var msg: String = "0"
     var producerOpen = false
@@ -32,21 +32,30 @@ case class KafkaMsgAction(topic: String, id: String) extends Action with Runnabl
 
     override def end(): Unit = {
         producerOpen = false
+        producer.producer.close()
+        RootLogger.logger.info(s"发送结束信息：jobId:$id, msg: $msg")
+        producer.produce(topic, s"$id:end", new MonitorResponse(id, msg.toLong, ""))
         RootLogger.logger.info("KafkaMsgAction end")
     }
 
     override def error(errorMsg: String): Unit = {
-        RootLogger.logger.info(s"发送错误信息：$errorMsg")
-        Thread.sleep(3000)
+        RootLogger.logger.info(s"发送错误信息：jobId:$id, error:$errorMsg")
         producer.produce(topic, s"$id:error", new MonitorResponse(id, 100L, errorMsg))
+    }
+
+    override def cloneAction(): Action = {
+        val res = KafkaMsgAction(topic, id)
+        res.msg = msg
+        res
     }
 
     def run(): Unit ={
         while(producerOpen) {
-            Thread.sleep(3000)
-            RootLogger.logger.info(s"发送kafka msg: $msg")
+            RootLogger.logger.info(s"发送kafka, jobId:$id, msg: $msg")
             producer.produce(topic, s"$id:run", new MonitorResponse(id, msg.toLong, ""))
+            Thread.sleep(3000)
         }
         RootLogger.logger.info(s"退出线程")
     }
+
 }

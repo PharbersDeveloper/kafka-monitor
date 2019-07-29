@@ -20,9 +20,9 @@ import org.apache.logging.log4j.LogManager
   * @since 2019/07/11 11:05
   * @note 一些值得注意的地方
   */
-case class CountGuard(jobId: String, url: String, action: Action, id: String = "") extends Guard {
+case class CountGuard(jobId: String, url: String, action: Action, version: String = "") extends Guard {
     private var open = false
-    private val guardId = if(id == "") jobId else id
+    private val guardId = if(version == "") jobId else version
     private val logger = LogManager.getLogger(this.getClass)
 
     override def init(): Unit = {
@@ -33,8 +33,8 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
     }
 
     override def run(): Unit = {
-        action.start()
         open = true
+        action.start()
         var sourceCount = -1L
         var sinkCount = 0L
         var shouldTrueCount = 20
@@ -88,7 +88,8 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
     override def close(): Unit = {
         val dropTables = List(s"drop stream source_stream_$guardId;", s"drop stream sink_stream_$guardId;")
         try {
-            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map()))
+            //todo: 异步执行比较好
+            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map(), 1))
         } catch {
             //可能未创建stream就关闭了
             case e: HttpRequestException => logger.info(e.getMessage)
@@ -111,14 +112,14 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
             logger.info(s"$jobId; ${createSourceStreamResponse.readLine()}")
         } catch {
             case e: HttpRequestException =>
-                close()
                 logger.error(s"$jobId; create stream error: ${e.getMessage}, sql: $ksqlDDL")
                 action.error(s"create stream error: ${e.getMessage}")
+                close()
                 throw e
             case e: Exception =>
-                close()
                 logger.error(s"$jobId; 未知错误: $e")
                 action.error(s"未知错误: $e")
+                close()
                 throw e
         }
     }
@@ -185,23 +186,26 @@ case class CountGuard(jobId: String, url: String, action: Action, id: String = "
         val checkTime = (new Date().getTime - startTime) / 1000
         val countAvgOfSecond = Math.abs(count + 1) / checkTime
         logger.debug(s"$jobId, 运行时间：$checkTime， speed: $countAvgOfSecond")
-        //todo: 消除魔法值，应该可配置
         if(countAvgOfSecond < 283 && checkTime > 120){
             restart()
         }
     }
 
     private def restart(): Unit = {
-        //todo: 这样创建的监控如果没有正常运行关闭，就会无限运行下去
-        val id = UUID.randomUUID().toString.replaceAll("-", "")
-        logger.info(s"$jobId,guard超时未完成，开启一个新的， id: $id")
-        try {
-            BaseGuardManager.createGuard(id, CountGuard(jobId, url, action, id))
-            BaseGuardManager.openGuard(id)
-            close()
-        } catch {
-            case e: Exception => RootLogger.logger.error(s"jobid: $jobId, id: $guardId, 重启监控失败", e)
+        if(version == ""){
+            BaseGuardManager.close(jobId)
+            val restartVersion =UUID.randomUUID().toString.replaceAll("-", "")
+            logger.info(s"$jobId,guard超时未完成，开启一个新的， id: $restartVersion")
+            try {
+                val restartAction = action.cloneAction()
+                BaseGuardManager.createGuard(jobId, CountGuard(jobId, url, restartAction, restartVersion))
+                BaseGuardManager.openGuard(jobId)
+            } catch {
+                case e: Exception => RootLogger.logger.error(s"jobid: $jobId, id: $guardId, 重启监控失败", e)
+            }
+        }else{
+            action.error("任务失败， source和sink结果有差异")
+            BaseGuardManager.close(jobId)
         }
-
     }
 }

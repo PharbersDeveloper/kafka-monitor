@@ -1,9 +1,8 @@
 package com.pharbers.kafka.monitor.manager
-
+import java.util.concurrent.Executors
+import com.pharbers.kafka.monitor.Config._
 import com.pharbers.kafka.monitor.guard.Guard
 import com.pharbers.kafka.monitor.util.RootLogger
-
-import scala.collection.mutable
 
 /** 功能描述
   *
@@ -15,19 +14,18 @@ import scala.collection.mutable
   * @note 一些值得注意的地方
   */
 object BaseGuardManager extends GuardManager {
-    private val guardMap = mutable.Map[String, Guard]()
+    //多并发时线程不安全，比如同时加入相同id
+    private var guardMap = Map[String, Guard]()
+    private val executorService = Executors.newFixedThreadPool(config.get("guardManager").get("maxThread").asInt())
 
     override def createGuard(id: String, guard: Guard): Guard = {
         if (guardMap.size > 100) {
-            clean()
+            guardMap = guardMap.filter(x => x._2.isOpen)
         }
-        //为防止kafka消息重复，不允许创建之前已经接收过的id
-        //需要保证即使是重新执行任务也要生成新的id
-        if (guardMap.contains(id)) {
-            throw new Exception("监控已经创建过了，即使是重新执行任务也要生成新的id")
-        }
-        guardMap.put(id, guard)
-        guard
+        guardMap.getOrElse(id, {
+            guardMap = guardMap ++ Map(id -> guard)
+            guard
+        })
     }
 
     override def getGuard(id: String): Guard = {
@@ -46,16 +44,20 @@ object BaseGuardManager extends GuardManager {
         if (guardMap.contains(id) && !guardMap(id).isOpen) {
             guardMap(id).init()
             RootLogger.logger.info(s"start guard $id")
-            new Thread(guardMap(id)).start()
+            executorService.execute(guardMap(id))
         }
     }
 
-    def closeAll(): Unit = {
-        guardMap.values.foreach(x => if (x.isOpen) x.close())
-        clean()
+    def close(id: String): Unit = {
+        val guard = getGuard(id)
+        if (guard.isOpen) {
+            guard.close()
+        }
+        guardMap = guardMap -- List(id)
     }
 
     def clean(): Unit = {
-        guardMap.keys.foreach(x => if (!guardMap(x).isOpen) guardMap.remove(x))
+        guardMap.values.foreach(x => if (x.isOpen) x.close())
+        guardMap = Map()
     }
 }

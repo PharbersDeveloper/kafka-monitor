@@ -14,4 +14,5 @@ trait Action {
     def runTime(msg: String): Unit
     def end(): Unit
     def error(errorMsg: String): Unit
+    def cloneAction(): Action
 }

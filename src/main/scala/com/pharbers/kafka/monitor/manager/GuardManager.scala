@@ -18,7 +18,7 @@ trait GuardManager {
 
     def openGuard(id: String)
 
-    def closeAll()
+    def close(id: String)
 
     def clean()
 }

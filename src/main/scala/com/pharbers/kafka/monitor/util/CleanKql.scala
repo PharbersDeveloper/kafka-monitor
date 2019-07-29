@@ -20,7 +20,6 @@ object CleanKql extends App {
       *
       * @param  name   : streams/tables/queries
       * @param  url    : http://59.110.31.50:8088
-      * @param  filter : 过滤sql语句
       * @return
       * @example
       * @note
