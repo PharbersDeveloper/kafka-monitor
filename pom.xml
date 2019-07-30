@@ -62,11 +62,11 @@
 
     <!--httpClient-->
     <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
-    <dependency>
-      <groupId>com.squareup.okhttp3</groupId>
-      <artifactId>okhttp</artifactId>
-      <version>4.0.1</version>
-    </dependency>
+    <!--<dependency>-->
+      <!--<groupId>com.squareup.okhttp3</groupId>-->
+      <!--<artifactId>okhttp</artifactId>-->
+      <!--<version>4.0.1</version>-->
+    <!--</dependency>-->
 
     <!--log4j-->
     <dependency>
@@ -92,6 +92,15 @@
   <build>
     <sourceDirectory>src/main/scala</sourceDirectory>
     <testSourceDirectory>src/test/scala</testSourceDirectory>
+    <resources>
+      <resource>
+        <directory>pharbers_config</directory>
+        <includes>
+          <include>**/*.xml</include>
+          <include>**/*.json</include>
+        </includes>
+      </resource>
+    </resources>
     <plugins>
       <!--自动测试-->
       <plugin>
@@ -101,6 +110,32 @@
         <configuration>
           <skipTests>true</skipTests>
         </configuration>
+      </plugin>
+
+      <!--scala支持-->
+      <plugin>
+        <groupId>org.scala-tools</groupId>
+        <artifactId>maven-scala-plugin</artifactId>
+        <version>2.15.2</version>
+        <executions>
+          <execution>
+            <id>scala-compile-first</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/*.scala</include>
+              </includes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>scala-test-compile</id>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
 
       <!--主类声明-->
@@ -140,28 +175,32 @@
         </executions>
       </plugin>
 
-      <!--添加拷贝依赖到可执行Jar的插件-->
+      <!--打包配置文件-->
       <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <configuration>
-          <appendAssemblyId>false</appendAssemblyId>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
-          <archive>
-            <manifest>
-              <mainClass>com.altamob.LogicLauncher</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
         <executions>
           <execution>
-            <id>make-assembly</id>
+            <id>copy-resources</id>
             <phase>package</phase>
             <goals>
-              <goal>single</goal>
+              <goal>copy-resources</goal>
             </goals>
+            <configuration>
+              <encoding>UTF-8</encoding>
+              <!--打成jar包后复制到的路径-->
+              <outputDirectory>
+                ${project.build.directory}/pharbers_config
+              </outputDirectory>
+              <resources>
+                <resource>
+                  <!--项目中的路径-->
+                  <directory>pharbers_config</directory>
+                </resource>
+              </resources>
+            </configuration>
           </execution>
+          <!--可配置多个提取复制路径只需要 “<id>”名字不一样即可-->
         </executions>
       </plugin>
 

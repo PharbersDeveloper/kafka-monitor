@@ -15,5 +15,5 @@ import com.pharbers.kafka.monitor.util.JsonHandler
   * @note 一些值得注意的地方
   */
 object Config {
-    val config: JsonNode = JsonHandler.objectMapper.readTree(new File("pharbers_config/config.json"))
+    val config: JsonNode = JsonHandler.objectMapper.readTree(new File(scala.util.Properties.envOrElse("PHA_CONF_HOME", "pharbers_config") + "/config.json"))
 }

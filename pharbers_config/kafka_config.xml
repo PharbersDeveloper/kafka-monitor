@@ -12,9 +12,9 @@
         <specificAvroReader value="true" />
         <securityProtocol value="SSL" />
         <sslAlgorithm value=" " />
-        <sslTruststoreLocation value="./config/secrets/kafka.broker1.truststore.jks" />
+        <sslTruststoreLocation value="pharbers_config/secrets/kafka.broker1.truststore.jks" />
         <sslTruststorePassword value="pharbers" />
-        <sslKeystoreLocation value="./config/secrets/kafka.broker1.keystore.jks" />
+        <sslKeystoreLocation value="pharbers_config/secrets/kafka.broker1.keystore.jks" />
         <sslKeystorePassword value="pharbers" />
     </kafka-config>
 </pharbers-modules>
