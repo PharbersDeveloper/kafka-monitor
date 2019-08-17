@@ -20,6 +20,8 @@ import org.apache.logging.log4j.LogManager
   * @since 2019/07/11 11:05
   * @note 一些值得注意的地方
   */
+
+//这是建立在topic中都是同一个key的监控
 case class CountGuard(jobId: String, url: String, action: Action, version: String = "") extends Guard {
     private var open = false
     private val guardId = if(version == "") jobId else version
@@ -37,13 +39,13 @@ case class CountGuard(jobId: String, url: String, action: Action, version: Strin
         action.start()
         var sourceCount = -1L
         var sinkCount = 0L
-        var shouldTrueCount = 20
+        var shouldTrueCount = 10
         var CanErrorCount = 10
 
         val selectSourceCount = s"select count(*) from source_stream_$guardId group by rowkey;"
         val selectSinkCount = s"select count from sink_stream_$guardId;"
 //todo：测试用，等待1分钟，等待source完成
-        Thread.sleep(1000 * 60)
+//        Thread.sleep(1000 * 60)
         val startTime = new Date().getTime
         logger.info(s"$jobId; 开始query")
         val sourceRead = createQuery(selectSourceCount)
@@ -57,7 +59,7 @@ case class CountGuard(jobId: String, url: String, action: Action, version: Strin
                     sourceCount = resSourceCount
                     sinkCount = resSinkCount
                 } else {
-                    Thread.sleep(1000)
+                    Thread.sleep(50)
                 }
                 try {
                     if (checkCount(sourceCount, sinkCount, shouldTrueCount)) {
@@ -184,7 +186,7 @@ case class CountGuard(jobId: String, url: String, action: Action, version: Strin
 
     private def speedCheck(startTime: Long, count: Long): Unit ={
         val checkTime = (new Date().getTime - startTime) / 1000
-        val countAvgOfSecond = Math.abs(count + 1) / checkTime
+        val countAvgOfSecond = Math.abs(count + 1) / (checkTime + 1)
         logger.debug(s"$jobId, 运行时间：$checkTime， speed: $countAvgOfSecond")
         if(countAvgOfSecond < 283 && checkTime > 120){
             restart()
