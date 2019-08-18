@@ -2,7 +2,7 @@ package com.pharbers.kafka.monitor
 
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
 import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction}
-import com.pharbers.kafka.monitor.guard.CountGuard
+import com.pharbers.kafka.monitor.guard.{CountGuard, TmGuard}
 import com.pharbers.kafka.monitor.manager.{BaseGuardManager, GuardManager}
 import com.pharbers.kafka.schema.MonitorRequest
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -62,7 +62,8 @@ object main {
         logger.info(s"jobid; $jobId; 开始创建监控")
         val action =  KafkaMsgAction(topic, jobId)
         try{
-            guardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
+//            guardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
+            guardManager.createGuard(jobId, TmGuard(jobId, "http://59.110.31.50:8088", action))
             guardManager.openGuard(jobId)
         }catch {
             case e: Exception => logger.error("创建监控失败", e)

@@ -2,14 +2,21 @@ package com.pharbers.kafka.monitor.guard
 
 import java.io.BufferedReader
 import java.net.SocketTimeoutException
-import java.util.{Date, Timer, TimerTask, UUID}
+import java.time.Duration
+import java.util.{Date, UUID}
 
+import com.pharbers.kafka.consumer.PharbersKafkaConsumer
 import com.pharbers.kafka.monitor.action.Action
 import com.pharbers.kafka.monitor.exception.HttpRequestException
 import com.pharbers.kafka.monitor.httpClient.JsonMode.QueryMode
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
 import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
+import com.pharbers.kafka.schema.SinkRecall
+import org.apache.kafka.clients.consumer.ConsumerRecords
+import org.apache.kafka.common.TopicPartition
 import org.apache.logging.log4j.LogManager
+
+import scala.collection.JavaConverters._
 
 /** 功能描述
   *
@@ -17,21 +24,19 @@ import org.apache.logging.log4j.LogManager
   * @tparam T 构造泛型参数
   * @author dcs
   * @version 0.0
-  * @since 2019/07/11 11:05
+  * @since 2019/08/18 11:21
   * @note 一些值得注意的地方
   */
-
-//这是建立在topic中都是同一个key的监控
-case class CountGuard(jobId: String, url: String, action: Action, version: String = "") extends Guard {
+case class TmGuard(jobId: String, url: String, action: Action, version: String = "") extends Guard {
     private var open = false
     private val guardId = if(version == "") jobId else version
     private val logger = LogManager.getLogger(this.getClass)
 
     override def init(): Unit = {
-        val createSourceStream = "create stream source_stream_" + guardId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
-        val createSinkStream = "create stream sink_stream_" + guardId + " with (kafka_topic = '" + s"recall_$jobId" + "', value_format = 'avro');"
-        createStream(createSourceStream)
-        createStream(createSinkStream)
+//        val createSourceStream = "create stream source_stream_" + guardId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
+//        val createSinkStream = "create stream sink_stream_" + guardId + " with (kafka_topic = '" + s"recall_$jobId" + "', value_format = 'avro');"
+//        createStream(createSourceStream)
+//        createStream(createSinkStream)
     }
 
     override def run(): Unit = {
@@ -42,19 +47,22 @@ case class CountGuard(jobId: String, url: String, action: Action, version: Strin
         var shouldTrueCount = 10
         var CanErrorCount = 10
 
-        val selectSourceCount = s"select count(*) from source_stream_$guardId group by rowkey;"
-        val selectSinkCount = s"select count from sink_stream_$guardId;"
-//todo：测试用，等待1分钟，等待source完成
-//        Thread.sleep(1000 * 60)
+//        val selectSourceCount = s"select count(*) from source_stream_$guardId group by rowkey;"
+//        val selectSinkCount = s"select count from sink_stream_$guardId;"
+
         val startTime = new Date().getTime
         logger.info(s"$jobId; 开始query")
-        val sourceRead = createQuery(selectSourceCount)
-        val sinkRead = createQuery(selectSinkCount)
+        val sourceConsumer = new PharbersKafkaConsumer(Nil).getConsumer
+        val sinkConsumer = new PharbersKafkaConsumer[String, SinkRecall](Nil).getConsumer
+        sinkConsumer.subscribe(List(s"recall_$jobId").asJava)
         try {
             while (isOpen && shouldTrueCount != 0 && CanErrorCount != 0) {
                 logger.debug(s"isopen: $open")
-                val resSourceCount = getCount(sourceRead, sourceCount)
-                val resSinkCount = getCount(sinkRead, sinkCount)
+                val resSourceCount = sourceConsumer
+                        .endOffsets(sourceConsumer.partitionsFor(s"source_$jobId").asScala.map(x => new TopicPartition(x.topic(), x.partition())).asJava).asScala
+                        .values.foldLeft(0L)(_ + _)
+                logger.debug(s"获取sink recall count")
+                val resSinkCount = getCount(sinkConsumer.poll(Duration.ofMillis(50)), sinkCount)
                 if(resSourceCount != sourceCount || resSinkCount != sinkCount){
                     sourceCount = resSourceCount
                     sinkCount = resSinkCount
@@ -74,8 +82,8 @@ case class CountGuard(jobId: String, url: String, action: Action, version: Strin
                 speedCheck(startTime, (sourceCount + sinkCount) / 2)
             }
         } finally {
-            sourceRead.close()
-            sinkRead.close()
+            sourceConsumer.close()
+            sinkConsumer.close()
         }
         if (shouldTrueCount == 0) {
             action.runTime("100")
@@ -92,17 +100,6 @@ case class CountGuard(jobId: String, url: String, action: Action, version: Strin
             logger.info("已经关闭过了")
             return
         }
-        val dropTables = List(s"drop stream source_stream_$guardId;", s"drop stream sink_stream_$guardId;")
-        try {
-            //todo: 异步执行比较好
-            dropTables.map(x => KsqlRunner.runSql(x, s"$url/ksql", Map(), 1))
-        } catch {
-            //可能未创建stream就关闭了
-            case e: HttpRequestException => logger.info(e.getMessage)
-            case e: Exception =>
-                logger.error("删除创建的ksql资源时发生未知错误", e)
-                throw e
-        }
         action.end()
         logger.info(s"$jobId,关闭countGuard")
         open = false
@@ -112,68 +109,52 @@ case class CountGuard(jobId: String, url: String, action: Action, version: Strin
         open
     }
 
-    private def createStream(ksqlDDL: String): Unit = {
-        try {
-            val createSourceStreamResponse = KsqlRunner.runSql(ksqlDDL, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-            logger.info(s"$jobId; ${createSourceStreamResponse.readLine()}")
-        } catch {
-            case e: HttpRequestException =>
-                logger.error(s"$jobId; create stream error: ${e.getMessage}, sql: $ksqlDDL")
-                action.error(s"create stream error: ${e.getMessage}")
-                close()
-                throw e
-            case e: Exception =>
-                logger.error(s"$jobId; 未知错误: $e")
-                action.error(s"未知错误: $e")
-                close()
-                throw e
-        }
-    }
+//    private def createStream(ksqlDDL: String): Unit = {
+//        try {
+//            val createSourceStreamResponse = KsqlRunner.runSql(ksqlDDL, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
+//            logger.info(s"$jobId; ${createSourceStreamResponse.readLine()}")
+//        } catch {
+//            case e: HttpRequestException =>
+//                logger.error(s"$jobId; create stream error: ${e.getMessage}, sql: $ksqlDDL")
+//                action.error(s"create stream error: ${e.getMessage}")
+//                close()
+//                throw e
+//            case e: Exception =>
+//                logger.error(s"$jobId; 未知错误: $e")
+//                action.error(s"未知错误: $e")
+//                close()
+//                throw e
+//        }
+//    }
+//
+//    private def createQuery(ksqlDML: String): BufferedReader = {
+//        try {
+//            KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
+//        } catch {
+//            case e: HttpRequestException =>
+//                close()
+//                logger.error(s"$jobId; create query error: ${e.getMessage}, sql: $ksqlDML")
+//                action.error(s"ksql query error: ${e.getMessage}, url: $url, sql: $ksqlDML")
+//                throw e
+//            case e: SocketTimeoutException =>
+//                close()
+//                logger.error(s"$jobId; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
+//                action.error(s"ksql query 连接超时: ${e.getMessage}, url: $url, sql: $ksqlDML")
+//                throw e
+//            case e: Exception =>
+//                close()
+//                logger.error(s"$jobId; 未知错误: ${e.getMessage}")
+//                action.error(s"未知错误: ${e.getMessage}")
+//                throw e
+//        }
+//    }
 
-    private def createQuery(ksqlDML: String): BufferedReader = {
-        try {
-            KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-        } catch {
-            case e: HttpRequestException =>
-                close()
-                logger.error(s"$jobId; create query error: ${e.getMessage}, sql: $ksqlDML")
-                action.error(s"ksql query error: ${e.getMessage}, url: $url, sql: $ksqlDML")
-                throw e
-            case e: SocketTimeoutException =>
-                close()
-                logger.error(s"$jobId; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
-                action.error(s"ksql query 连接超时: ${e.getMessage}, url: $url, sql: $ksqlDML")
-                throw e
-            case e: Exception =>
-                close()
-                logger.error(s"$jobId; 未知错误: ${e.getMessage}")
-                action.error(s"未知错误: ${e.getMessage}")
-                throw e
-        }
-    }
-
-    private def getCount(reader: BufferedReader, count: Long): Long = {
-        val json = if (reader.ready()) {
-            reader.readLine
-        } else {
-            ""
-        }
-        if (json.length > 0) {
-            val row = JsonHandler.readObject[QueryMode](json).row
-            try {
-                row.getColumns.get(0).toLong
-            } catch {
-                case e: Exception =>
-                    logger.debug(e)
-                    count
-            }
-        } else {
-            count
-        }
+    private def getCount(records: ConsumerRecords[String, SinkRecall], count: Long): Long = {
+        records.asScala.foldLeft(count)((left, right) => if (right.value().getCount >= left) right.value().getCount else left)
     }
 
     private def checkCount(sourceCount: Long, sinkCount: Long, trueCount: Int): Boolean = {
-        if (sourceCount == sinkCount) {
+        if (sourceCount == sinkCount && sourceCount != 0) {
             action.runTime("99")
             true
         } else {

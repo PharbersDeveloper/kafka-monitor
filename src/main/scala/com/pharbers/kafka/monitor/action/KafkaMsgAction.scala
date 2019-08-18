@@ -1,5 +1,7 @@
 package com.pharbers.kafka.monitor.action
 
+import java.time.Duration
+
 import com.pharbers.kafka.monitor.util.RootLogger
 import com.pharbers.kafka.producer.PharbersKafkaProducer
 import com.pharbers.kafka.schema.MonitorResponse
@@ -27,7 +29,7 @@ case class KafkaMsgAction(topic: String, id: String) extends Action with Runnabl
 
     override def runTime(msg: String): Unit = {
         RootLogger.logger.debug(msg)
-        if (this.msg.toLong < msg.toLong) this.msg = msg
+        if (this.msg.toLong < msg.toLong && msg.toLong <= 100) this.msg = msg
     }
 
     override def end(): Unit = {
@@ -35,7 +37,7 @@ case class KafkaMsgAction(topic: String, id: String) extends Action with Runnabl
         RootLogger.logger.info(s"发送结束信息：jobId:$id, msg: $msg")
         producer.produce(topic, s"$id:end", new MonitorResponse(id, msg.toLong, ""))
         RootLogger.logger.info("KafkaMsgAction end")
-        producer.producer.close()
+        producer.producer.close(Duration.ofSeconds(10))
     }
 
     override def error(errorMsg: String): Unit = {

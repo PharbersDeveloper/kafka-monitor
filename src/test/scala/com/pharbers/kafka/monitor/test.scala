@@ -1,9 +1,13 @@
 package com.pharbers.kafka.monitor
 
+import java.util.concurrent.TimeUnit
+
 import com.pharbers.kafka.monitor.action.KafkaMsgAction
 import com.pharbers.kafka.monitor.guard.CountGuard
 import com.pharbers.kafka.monitor.manager.BaseGuardManager
 import com.pharbers.kafka.monitor.util.{JsonHandler, KsqlRunner, RootLogger}
+import com.pharbers.kafka.producer.PharbersKafkaProducer
+import com.pharbers.kafka.schema.SparkDriverConfig
 import org.scalatest.FunSuite
 
 
@@ -28,6 +32,20 @@ object testSql extends App {
     }
 }
 
+class testKafka extends FunSuite{
+    test("test kafka producer"){
+        val pkp = new PharbersKafkaProducer[String, SparkDriverConfig]
+        val json = new SparkDriverConfig()
+        json.setName("dcs-test")
+        json.setTopic("test")
+        json.setCup(1)
+        json.setEme(1024)
+        val fu = pkp.produce("test", "jobid", json)
+//        val json = "{\n\t\"name\": \"driver_test\",\n\t\"cup\": 1,\n\t\"eme\": 1024,\n\t\"topic\": \"test\"\n}"
+//        val fu = pkp.produce("DriverRequest", "jobid", json)
+        println(fu.get(10, TimeUnit.SECONDS))
+    }
+}
 
 class testHttp extends FunSuite{
 //    import okhttp3._
