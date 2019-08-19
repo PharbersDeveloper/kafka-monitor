@@ -33,10 +33,6 @@ case class TmGuard(jobId: String, url: String, action: Action, version: String =
     private val logger = LogManager.getLogger(this.getClass)
 
     override def init(): Unit = {
-//        val createSourceStream = "create stream source_stream_" + guardId + " with (kafka_topic = '" + s"source_$jobId" + "', value_format = 'avro');"
-//        val createSinkStream = "create stream sink_stream_" + guardId + " with (kafka_topic = '" + s"recall_$jobId" + "', value_format = 'avro');"
-//        createStream(createSourceStream)
-//        createStream(createSinkStream)
     }
 
     override def run(): Unit = {
@@ -44,11 +40,9 @@ case class TmGuard(jobId: String, url: String, action: Action, version: String =
         action.start()
         var sourceCount = -1L
         var sinkCount = 0L
+        //todo： 配置
         var shouldTrueCount = 10
         var CanErrorCount = 10
-
-//        val selectSourceCount = s"select count(*) from source_stream_$guardId group by rowkey;"
-//        val selectSinkCount = s"select count from sink_stream_$guardId;"
 
         val startTime = new Date().getTime
         logger.info(s"$jobId; 开始query")

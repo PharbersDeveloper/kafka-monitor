@@ -22,7 +22,8 @@ object entrance extends App {
     //传参
     val count = 1
     var jobID: String = ""
-    val excelFile: String = "_data17w.xlsx"
+    val excelFile: String = "testHdfsSink.xlsx"
+//    val excelFile: String = "_data17w.xlsx"
 //    val excelFile: String = "_data79w.xlsx"
 //    val excelFile: String = "gycx_1048576_full.xlsx"
     var listenMonitor: Boolean = false
