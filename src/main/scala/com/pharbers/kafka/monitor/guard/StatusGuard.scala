@@ -23,7 +23,7 @@ import scala.collection.JavaConverters._
   * @since 2019/08/27 11:12
   * @note 一些值得注意的地方
   */
-case class statusGuard(jobId: String, action: Action, version: String = "") extends Guard {
+case class StatusGuard(jobId: String, action: Action, version: String = "") extends Guard {
     private val logger = LogManager.getLogger(this.getClass)
     private var open = false
     override def init(): Unit = {
@@ -36,7 +36,7 @@ case class statusGuard(jobId: String, action: Action, version: String = "") exte
         consumer.subscribe(List(Config.config.get("statusTopic").asText()).asJava)
         while (isOpen){
             val records = consumer.poll(Duration.ofMillis(1000))
-            records.asScala.foreach(x => {
+            records.asScala.filter(x => x.value() != null).foreach(x => {
                 logger.info(s"key:${x.key()}, value:${x.value()}")
                 val jobId = getJobId(x.key())
                 val value = JsonHandler.objectMapper.readTree(x.value())
@@ -46,6 +46,7 @@ case class statusGuard(jobId: String, action: Action, version: String = "") exte
                     case "FAILED" =>
                         action.error(jobId + "#" +value.get("trace").asText())
                         GuardManager.close(jobId)
+                    case "PAUSED" => logger.info(s"key:${x.key()} PAUSED")
                 }
             })
         }

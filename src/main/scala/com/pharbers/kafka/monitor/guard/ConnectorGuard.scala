@@ -54,11 +54,15 @@ case class ConnectorGuard(jobId: String, action: Action, version: String = "") e
     }
 
     override def start(): Unit = {
+        lock.lock()
         aCondition.signalAll()
+        lock.unlock()
     }
 
     override def stop(): Unit = {
+        lock.lock()
         aCondition.await()
+        lock.unlock()
     }
 
     override def close(): Unit = {
@@ -122,17 +126,10 @@ case class ConnectorGuard(jobId: String, action: Action, version: String = "") e
 
     private def checkCount(sourceCount: Long, sinkCount: Long, trueCount: Int): Boolean = {
         if (sourceCount == sinkCount && sourceCount != 0) {
-            action.runTime("99")
             true
         } else {
             logger.debug(s"$jobId; sinkCount: $sinkCount; sourceCount: $sourceCount")
-            if (sinkCount > sourceCount) {
-                action.runTime((1 / (trueCount + 1).toDouble * sourceCount / sinkCount * 100).toInt.toString)
-                false
-            } else {
-                action.runTime((1 / (trueCount + 1).toDouble * (sinkCount + 1) / sourceCount * 100).toInt.toString)
-                false
-            }
+            false
         }
     }
 

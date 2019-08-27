@@ -1,8 +1,10 @@
 package com.pharbers.kafka.monitor
 
+import java.util.concurrent.Executors
+
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
-import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction}
-import com.pharbers.kafka.monitor.guard.{CountGuard, TmGuard}
+import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction, StatusMsgAction}
+import com.pharbers.kafka.monitor.guard.{ConnectorGuard, CountGuard, StatusGuard, TmGuard}
 import com.pharbers.kafka.monitor.manager.{BaseGuardManager, GuardManager}
 import com.pharbers.kafka.schema.MonitorRequest
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -20,27 +22,20 @@ import com.pharbers.kafka.monitor.Config._
   */
 object main {
     val logger: Logger = LogManager.getLogger(this.getClass)
-    val guardManager: GuardManager = BaseGuardManager
     def main(args: Array[String]): Unit = {
+        GuardManager.createGuard(config.get("statusTopic").asText(), StatusGuard(config.get("statusTopic").asText(), StatusMsgAction(config.get("producerTopic").asText())))
         val pkc = new PharbersKafkaConsumer[String, MonitorRequest](List(config.get("consumerTopic").asText()), 1000, Int.MaxValue, monitorProcess)
-        val t = new Thread(pkc)
         try {
             logger.info("MonitorServer starting!")
-            t.start()
-
-            logger.info("MonitorServer is started! Close by enter \"exit\" in console.")
-            var cmd = Console.readLine()
-            while (cmd != "exit") {
-                cmd = Console.readLine()
-            }
-
+            logger.debug("MonitorServer is started! 输入 \"exit\" 并不会发生什么.")
+            pkc.run()
         } catch {
             case ie: InterruptedException => {
                 logger.error(ie.getMessage)
             }
         } finally {
             pkc.close()
-            guardManager.clean()
+            GuardManager.clean()
             logger.error("MonitorServer close!")
         }
     }
@@ -51,8 +46,6 @@ object main {
                 doDefaultMonitorFunc(record.value().getJobId.toString, config.get("producerTopic").asText())
             case "close" => closeOneGuard(record.value().getJobId.toString)
             case "closeAll" => closeAllGuard()
-
-            //            case ??? => ???
         }
 
         logger.info("===myProcess>>>" + record.key() + ":" + record.value())
@@ -62,9 +55,10 @@ object main {
         logger.info(s"jobid; $jobId; 开始创建监控")
         val action =  KafkaMsgAction(topic, jobId)
         try{
-//            guardManager.createGuard(jobId, CountGuard(jobId, "http://59.110.31.50:8088", action))
-            guardManager.createGuard(jobId, TmGuard(jobId, "http://59.110.31.50:8088", action))
-            guardManager.openGuard(jobId)
+            GuardManager.createGuard(jobId, ConnectorGuard(jobId, action))
+            GuardManager.openGuard(jobId)
+            //每次都尝试启动status监控，如果以及启动就无事发生
+            GuardManager.openGuard(config.get("statusTopic").asText())
         }catch {
             case e: Exception => logger.error("创建监控失败", e)
         }
@@ -72,10 +66,10 @@ object main {
 
     def closeOneGuard(jobId: String): Unit ={
         logger.info(s"关闭相关监控， jodId: $jobId")
-        guardManager.close(jobId)
+        GuardManager.close(jobId)
     }
 
     def closeAllGuard(): Unit ={
-        guardManager.clean()
+        GuardManager.clean()
     }
 }

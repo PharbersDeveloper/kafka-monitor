@@ -9,8 +9,8 @@ package com.pharbers.kafka.monitor
 object monitor_config_obj {
 
     //配置信息
-    final val REQUEST_TOPIC = "MonitorRequest"
-    final val RESPONSE_TOPIC = "MonitorResponse"
+    final val REQUEST_TOPIC = "MonitorRequest2"
+    final val RESPONSE_TOPIC = "MonitorResponse2"
     final val CONNECTOR_URL = "http://192.168.100.176:8083/connectors"
 
 }

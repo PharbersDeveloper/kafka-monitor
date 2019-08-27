@@ -21,7 +21,7 @@ object entrance extends App {
 
     //传参
     val count = 1
-    var jobID: String = ""
+    var jobID: String = "dcsTest"
     val excelFile: String = "testHdfsSink.xlsx"
 //    val excelFile: String = "_data17w.xlsx"
 //    val excelFile: String = "_data79w.xlsx"
@@ -30,7 +30,6 @@ object entrance extends App {
 
     (1 to count).foreach(x => {
         RootLogger.logger.info(s"第${x}次")
-        jobID = UUID.randomUUID().toString.replaceAll("-", "")
         RootLogger.logger.info(s"START JOB ${jobID}")
         createSourceConnector()
         createSinkConnector()
@@ -76,7 +75,7 @@ object entrance extends App {
                        |    "name": "${jobID}-hdfs-sink-connector",
                        |    "config": {
                        |        "connector.class": "io.confluent.connect.hdfs.HdfsSinkConnector",
-                       |        "tasks.max": "6",
+                       |        "tasks.max": "1",
                        |        "topics": "source_${jobID}",
                        |        "jobId": "${jobID}",
                        |        "format.class": "io.confluent.connect.hdfs.parquet.ParquetFormat",
@@ -151,9 +150,11 @@ object entrance extends App {
     //Step ？ 结束或发生异常时删除管道
     def deleteConnectors(jobID: String): Unit = {
         try {
-            val deleteSourceConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-oss-source-connector").method("DELETE").asString
+//            val deleteSourceConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-oss-source-connector").method("DELETE").asString
+            val deleteSourceConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-oss-source-connector/pause").method("PUT").asString
             RootLogger.logger.info(deleteSourceConnectorResult)
-            val deleteSinkConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-hdfs-sink-connector").method("DELETE").asString
+//            val deleteSinkConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-hdfs-sink-connector").method("DELETE").asString
+            val deleteSinkConnectorResult = Http(monitor_config_obj.CONNECTOR_URL + "/" + s"${jobID}-hdfs-sink-connector/pause").method("PUT").asString
             RootLogger.logger.info(deleteSinkConnectorResult)
         } catch {
             case e: Exception => RootLogger.logger.error(e.getMessage)
