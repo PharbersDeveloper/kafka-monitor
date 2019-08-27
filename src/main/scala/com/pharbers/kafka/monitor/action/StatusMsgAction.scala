@@ -12,44 +12,36 @@ import com.pharbers.kafka.schema.MonitorResponse
   * @tparam T 构造泛型参数
   * @author dcs
   * @version 0.0
-  * @since 2019/07/15 10:29
+  * @since 2019/08/27 15:03
   * @note 一些值得注意的地方
   */
-case class KafkaMsgAction(topic: String, id: String) extends Action with Cloneable{
+case class StatusMsgAction(topic: String) extends Action{
     var producer: PharbersKafkaProducer[String, MonitorResponse] = _
     var msg: String = "0"
-    var producerOpen = false
 
     override def start(): Unit = {
         RootLogger.logger.info("开始建立producer")
         producer = new PharbersKafkaProducer[String, MonitorResponse]
-        producer.produce(topic, s"$id", new MonitorResponse(id, 0L, ""))
-        producerOpen = true
     }
 
     override def runTime(msg: String): Unit = {
-        RootLogger.logger.debug(msg)
-        if (this.msg.toLong < msg.toLong && msg.toLong <= 100) this.msg = msg
-        producer.produce(topic, s"$id:error", new MonitorResponse(id, this.msg.toLong, ""))
     }
 
     override def end(): Unit = {
-        producerOpen = false
-        RootLogger.logger.info(s"发送结束信息：jobId:$id, msg: $msg")
-        producer.produce(topic, s"$id:end", new MonitorResponse(id, msg.toLong, ""))
-        RootLogger.logger.info("KafkaMsgAction end")
         producer.producer.flush()
         producer.producer.close(Duration.ofSeconds(10))
     }
 
     override def error(errorMsg: String): Unit = {
-        RootLogger.logger.info(s"发送错误信息：jobId:$id, error:$errorMsg")
-        producer.produce(topic, s"$id:error", new MonitorResponse(id, 100L, errorMsg))
+        val jobId = errorMsg.split("#").head
+        RootLogger.logger.info(s"发送错误信息：jobId:$jobId, error:failed")
+        producer.produce(topic, s"$jobId:error", new MonitorResponse(jobId, 100L, errorMsg))
     }
 
     override def cloneAction(): Action = {
-        val res = KafkaMsgAction(topic, id)
+        val res = StatusMsgAction(topic)
         res.msg = msg
         res
     }
+
 }

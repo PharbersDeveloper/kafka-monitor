@@ -17,4 +17,8 @@ trait Guard extends Runnable{
     def close(): Unit
 
     def isOpen: Boolean
+
+    def stop(): Unit ={}
+
+    def start(): Unit ={}
 }

@@ -27,7 +27,7 @@ import scala.collection.JavaConverters._
   * @since 2019/08/18 11:21
   * @note 一些值得注意的地方
   */
-case class TmGuard(jobId: String, url: String, action: Action, version: String = "") extends Guard {
+case class TmGuard(jobId: String, action: Action, version: String = "") extends Guard {
     private var open = false
     private val guardId = if(version == "") jobId else version
     private val logger = LogManager.getLogger(this.getClass)
@@ -60,6 +60,7 @@ case class TmGuard(jobId: String, url: String, action: Action, version: String =
                 if(resSourceCount != sourceCount || resSinkCount != sinkCount){
                     sourceCount = resSourceCount
                     sinkCount = resSinkCount
+                    shouldTrueCount = 10
                 } else {
                     Thread.sleep(50)
                 }
@@ -103,46 +104,6 @@ case class TmGuard(jobId: String, url: String, action: Action, version: String =
         open
     }
 
-//    private def createStream(ksqlDDL: String): Unit = {
-//        try {
-//            val createSourceStreamResponse = KsqlRunner.runSql(ksqlDDL, s"$url/ksql", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-//            logger.info(s"$jobId; ${createSourceStreamResponse.readLine()}")
-//        } catch {
-//            case e: HttpRequestException =>
-//                logger.error(s"$jobId; create stream error: ${e.getMessage}, sql: $ksqlDDL")
-//                action.error(s"create stream error: ${e.getMessage}")
-//                close()
-//                throw e
-//            case e: Exception =>
-//                logger.error(s"$jobId; 未知错误: $e")
-//                action.error(s"未知错误: $e")
-//                close()
-//                throw e
-//        }
-//    }
-//
-//    private def createQuery(ksqlDML: String): BufferedReader = {
-//        try {
-//            KsqlRunner.runSql(ksqlDML, s"$url/query", Map("ksql.streams.auto.offset.reset" -> "earliest"))
-//        } catch {
-//            case e: HttpRequestException =>
-//                close()
-//                logger.error(s"$jobId; create query error: ${e.getMessage}, sql: $ksqlDML")
-//                action.error(s"ksql query error: ${e.getMessage}, url: $url, sql: $ksqlDML")
-//                throw e
-//            case e: SocketTimeoutException =>
-//                close()
-//                logger.error(s"$jobId; create query 连接超时: ${e.getMessage}, sql: $ksqlDML")
-//                action.error(s"ksql query 连接超时: ${e.getMessage}, url: $url, sql: $ksqlDML")
-//                throw e
-//            case e: Exception =>
-//                close()
-//                logger.error(s"$jobId; 未知错误: ${e.getMessage}")
-//                action.error(s"未知错误: ${e.getMessage}")
-//                throw e
-//        }
-//    }
-
     private def getCount(records: ConsumerRecords[String, SinkRecall], count: Long): Long = {
         records.asScala.foldLeft(count)((left, right) => if (right.value().getCount >= left) right.value().getCount else left)
     }
@@ -179,7 +140,7 @@ case class TmGuard(jobId: String, url: String, action: Action, version: String =
             logger.info(s"$jobId,guard超时未完成，开启一个新的， id: $restartVersion")
             try {
                 val restartAction = action.cloneAction()
-                BaseGuardManager.createGuard(jobId, CountGuard(jobId, url, restartAction, restartVersion))
+                BaseGuardManager.createGuard(jobId, TmGuard(jobId, restartAction, restartVersion))
                 BaseGuardManager.openGuard(jobId)
             } catch {
                 case e: Exception => RootLogger.logger.error(s"jobid: $jobId, id: $guardId, 重启监控失败", e)

@@ -17,6 +17,15 @@ object BaseGuardManager extends GuardManager {
     //多并发时线程不安全，比如同时加入相同id
     private var guardMap = Map[String, Guard]()
     private val executorService = Executors.newFixedThreadPool(config.get("guardManager").get("maxThread").asInt())
+    private val emptyGuard =  new Guard {
+        override def init(): Unit = {}
+
+        override def run(): Unit = {}
+
+        override def close(): Unit = {}
+
+        override def isOpen: Boolean = false
+    }
 
     override def createGuard(id: String, guard: Guard): Guard = {
         if (guardMap.size > 100) {
@@ -29,15 +38,7 @@ object BaseGuardManager extends GuardManager {
     }
 
     override def getGuard(id: String): Guard = {
-        guardMap.getOrElse(id, new Guard {
-            override def init(): Unit = {}
-
-            override def run(): Unit = {}
-
-            override def close(): Unit = {}
-
-            override def isOpen: Boolean = false
-        })
+        guardMap.getOrElse(id, emptyGuard)
     }
 
     override def openGuard(id: String): Unit = {
@@ -59,5 +60,13 @@ object BaseGuardManager extends GuardManager {
     def clean(): Unit = {
         guardMap.values.foreach(x => if (x.isOpen) x.close())
         guardMap = Map()
+    }
+
+    override def stopGuard(id: String): Unit = {
+        guardMap.getOrElse(id, emptyGuard).stop()
+    }
+
+    override def startGuard(id: String): Unit = {
+        guardMap.getOrElse(id, emptyGuard).start()
     }
 }
