@@ -33,9 +33,9 @@ case class StatusMsgAction(topic: String) extends Action{
     }
 
     override def error(errorMsg: String): Unit = {
-        val jobId = errorMsg.split("#").head
-        RootLogger.logger.info(s"发送错误信息：jobId:$jobId, error:failed")
-        producer.produce(topic, s"$jobId:error", new MonitorResponse(jobId, 100L, errorMsg))
+        val connectorName = errorMsg.split("#").head
+        RootLogger.logger.info(s"发送错误信息：connectorName:$connectorName, error:failed")
+        producer.produce(topic, s"$connectorName", new MonitorResponse(connectorName, 100L, errorMsg))
     }
 
     override def cloneAction(): Action = {

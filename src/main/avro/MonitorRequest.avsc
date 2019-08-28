@@ -1,0 +1,23 @@
+{
+  "type": "record",
+  "name": "MonitorRequest",
+  "namespace": "com.pharbers.kafka.monitor.schema",
+  "fields": [
+    {
+      "name": "connectorName",
+      "type": "string"
+    },
+    {
+        "name": "sourceTopic",
+        "type": "string"
+    },
+    {
+         "name": "recallTopic",
+         "type": "string"
+    },
+    {
+      "name": "strategy",
+      "type": "string"
+    }
+  ]
+}

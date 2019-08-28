@@ -1,15 +1,14 @@
 package com.pharbers.kafka.monitor
 
-import java.util.concurrent.Executors
 
 import com.pharbers.kafka.consumer.PharbersKafkaConsumer
-import com.pharbers.kafka.monitor.action.{Action, KafkaMsgAction, StatusMsgAction}
-import com.pharbers.kafka.monitor.guard.{ConnectorGuard, CountGuard, StatusGuard, TmGuard}
-import com.pharbers.kafka.monitor.manager.{BaseGuardManager, GuardManager}
-import com.pharbers.kafka.schema.MonitorRequest
+import com.pharbers.kafka.monitor.action.{KafkaMsgAction, StatusMsgAction}
+import com.pharbers.kafka.monitor.guard.{ConnectorGuard, StatusGuard}
+import com.pharbers.kafka.monitor.manager.GuardManager
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.logging.log4j.{LogManager, Logger}
 import com.pharbers.kafka.monitor.Config._
+import com.pharbers.kafka.monitor.schema.MonitorRequest
 
 /** 功能描述
   *
@@ -43,20 +42,20 @@ object main {
 
         record.value().getStrategy.toString match {
             case "default" =>
-                doDefaultMonitorFunc(record.value().getJobId.toString, config.get("producerTopic").asText())
-            case "close" => closeOneGuard(record.value().getJobId.toString)
+                doDefaultMonitorFunc(record.value().getConnectorName.toString, record.value().getSourceTopic.toString, record.value().getRecallTopic.toString, config.get("producerTopic").asText())
+            case "close" => closeOneGuard(record.value().getConnectorName.toString)
             case "closeAll" => closeAllGuard()
         }
 
         logger.info("===myProcess>>>" + record.key() + ":" + record.value())
     }
 
-    def doDefaultMonitorFunc(jobId: String, topic: String): Unit = {
-        logger.info(s"jobid; $jobId; 开始创建监控")
-        val action =  KafkaMsgAction(topic, jobId)
+    def doDefaultMonitorFunc(connectorName: String, sourceTopic: String, recallTopic: String, topic: String): Unit = {
+        logger.info(s"connectorName; $connectorName; 开始创建监控")
+        val action =  KafkaMsgAction(topic, connectorName)
         try{
-            GuardManager.createGuard(jobId, ConnectorGuard(jobId, action))
-            GuardManager.openGuard(jobId)
+            GuardManager.createGuard(connectorName, ConnectorGuard(connectorName,sourceTopic, recallTopic, action))
+            GuardManager.openGuard(connectorName)
             //每次都尝试启动status监控，如果以及启动就无事发生
             GuardManager.openGuard(config.get("statusTopic").asText())
         }catch {

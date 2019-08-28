@@ -38,14 +38,14 @@ case class StatusGuard(jobId: String, action: Action, version: String = "") exte
             val records = consumer.poll(Duration.ofMillis(1000))
             records.asScala.filter(x => x.value() != null).foreach(x => {
                 logger.info(s"key:${x.key()}, value:${x.value()}")
-                val jobId = getJobId(x.key())
+                val connectorName = getName(x.key())
                 val value = JsonHandler.objectMapper.readTree(x.value())
                 value.get("state").asText() match {
-                    case "RUNNING" => GuardManager.startGuard(jobId)
+                    case "RUNNING" => GuardManager.startGuard(connectorName)
                     case "UNASSIGNED" => logger.info(s"key:${x.key()} UNASSIGNED")
                     case "FAILED" =>
-                        action.error(jobId + "#" +value.get("trace").asText())
-                        GuardManager.close(jobId)
+                        action.error(connectorName + "#" +value.get("trace").asText())
+                        GuardManager.close(connectorName)
                     case "PAUSED" => logger.info(s"key:${x.key()} PAUSED")
                 }
             })
@@ -83,10 +83,14 @@ case class StatusGuard(jobId: String, action: Action, version: String = "") exte
         new KafkaConsumer[String, String](config)
     }
 
-    private def getJobId(key: String): String ={
+    private def getName(key: String): String ={
         val keys = key.split("-")
         if (keys.length > 2){
-            keys(2)
+            keys(1) match {
+                case "connector" => keys.tail.tail.mkString("")
+                case "task" => keys.take(keys.length - 1).tail.tail.mkString("")
+            }
+
         }else{
             ""
         }
