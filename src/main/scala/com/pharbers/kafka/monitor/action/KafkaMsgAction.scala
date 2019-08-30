@@ -4,7 +4,8 @@ import java.time.Duration
 
 import com.pharbers.kafka.monitor.util.RootLogger
 import com.pharbers.kafka.producer.PharbersKafkaProducer
-import com.pharbers.kafka.schema.MonitorResponse
+import com.pharbers.kafka.schema.MonitorResponse2
+
 
 /** 功能描述
   *
@@ -15,41 +16,41 @@ import com.pharbers.kafka.schema.MonitorResponse
   * @since 2019/07/15 10:29
   * @note 一些值得注意的地方
   */
-case class KafkaMsgAction(topic: String, connectorName: String) extends Action with Cloneable{
-    var producer: PharbersKafkaProducer[String, MonitorResponse] = _
+case class KafkaMsgAction(topic: String, jobId: String, connectorName: String) extends Action with Cloneable{
+    var producer: PharbersKafkaProducer[String, MonitorResponse2] = _
     var msg: String = "0"
     var producerOpen = false
 
     override def start(): Unit = {
         RootLogger.logger.info("开始建立producer")
-        producer = new PharbersKafkaProducer[String, MonitorResponse]
+        producer = new PharbersKafkaProducer[String, MonitorResponse2]
         //暂时不发送进度，只发结果
-//        producer.produce(topic, s"$id", new MonitorResponse(id, 0L, ""))
+//        producer.produce(topic, s"$id", new MonitorResponse2(id, 0L, ""))
         producerOpen = true
     }
 
     override def runTime(msg: String): Unit = {
         RootLogger.logger.debug(msg)
         if (this.msg.toLong < msg.toLong && msg.toLong <= 100) this.msg = msg
-        producer.produce(topic, s"$connectorName", new MonitorResponse(connectorName, this.msg.toLong, ""))
+        producer.produce(topic, s"$jobId", new MonitorResponse2(connectorName, jobId, this.msg.toLong, ""))
     }
 
     override def end(): Unit = {
         producerOpen = false
-        RootLogger.logger.info(s"发送结束信息：jobId:$connectorName, msg: $msg")
-        producer.produce(topic, s"$connectorName", new MonitorResponse(connectorName, msg.toLong, ""))
+        RootLogger.logger.info(s"发送结束信息：jobId:$jobId, msg: $msg")
+        producer.produce(topic, s"$jobId", new MonitorResponse2(connectorName, jobId, msg.toLong, ""))
         RootLogger.logger.info("KafkaMsgAction end")
         producer.producer.flush()
         producer.producer.close(Duration.ofSeconds(10))
     }
 
     override def error(errorMsg: String): Unit = {
-        RootLogger.logger.info(s"发送错误信息：jobId:$connectorName, error:$errorMsg")
-        producer.produce(topic, s"$connectorName", new MonitorResponse(connectorName, 100L, errorMsg))
+        RootLogger.logger.info(s"发送错误信息：jobId:$jobId, error:$errorMsg")
+        producer.produce(topic, s"$jobId", new MonitorResponse2(connectorName, jobId, 100L, errorMsg))
     }
 
     override def cloneAction(): Action = {
-        val res = KafkaMsgAction(topic, connectorName)
+        val res = KafkaMsgAction(topic, jobId, connectorName)
         res.msg = msg
         res
     }

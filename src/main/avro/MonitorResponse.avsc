@@ -1,11 +1,15 @@
 {
   "type": "record",
-  "name": "MonitorResponse",
-  "namespace": "com.pharbers.kafka.monitor.schema",
+  "name": "MonitorResponse2",
+  "namespace": "com.pharbers.kafka.schema",
   "fields": [
     {
       "name": "connectorName",
       "type": "string"
+    },
+    {
+        "name": "jobId",
+        "type": "string"
     },
     {
       "name": "progress",

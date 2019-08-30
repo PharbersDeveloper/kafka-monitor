@@ -3,17 +3,18 @@
  *
  * DO NOT EDIT DIRECTLY
  */
-package com.pharbers.kafka.monitor.schema;
+package com.pharbers.kafka.schema;
 
 import org.apache.avro.specific.SpecificData;
 
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
-public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  private static final long serialVersionUID = 4534353250999049554L;
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"MonitorResponse\",\"namespace\":\"com.pharbers.kafka.monitor.schema\",\"fields\":[{\"name\":\"connectorName\",\"type\":\"string\"},{\"name\":\"progress\",\"type\":\"long\"},{\"name\":\"error\",\"type\":\"string\"}]}");
+public class MonitorResponse2 extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = -1327696565249483615L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"MonitorResponse2\",\"namespace\":\"com.pharbers.kafka.schema\",\"fields\":[{\"name\":\"connectorName\",\"type\":\"string\"},{\"name\":\"jobId\",\"type\":\"string\"},{\"name\":\"progress\",\"type\":\"long\"},{\"name\":\"error\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence connectorName;
+  @Deprecated public java.lang.CharSequence jobId;
   @Deprecated public long progress;
   @Deprecated public java.lang.CharSequence error;
 
@@ -22,16 +23,18 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
    * to their default values from the schema.  If that is desired then
    * one should use <code>newBuilder()</code>.
    */
-  public MonitorResponse() {}
+  public MonitorResponse2() {}
 
   /**
    * All-args constructor.
    * @param connectorName The new value for connectorName
+   * @param jobId The new value for jobId
    * @param progress The new value for progress
    * @param error The new value for error
    */
-  public MonitorResponse(java.lang.CharSequence connectorName, java.lang.Long progress, java.lang.CharSequence error) {
+  public MonitorResponse2(java.lang.CharSequence connectorName, java.lang.CharSequence jobId, java.lang.Long progress, java.lang.CharSequence error) {
     this.connectorName = connectorName;
+    this.jobId = jobId;
     this.progress = progress;
     this.error = error;
   }
@@ -41,8 +44,9 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
   public java.lang.Object get(int field$) {
     switch (field$) {
     case 0: return connectorName;
-    case 1: return progress;
-    case 2: return error;
+    case 1: return jobId;
+    case 2: return progress;
+    case 3: return error;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -52,8 +56,9 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
     case 0: connectorName = (java.lang.CharSequence)value$; break;
-    case 1: progress = (java.lang.Long)value$; break;
-    case 2: error = (java.lang.CharSequence)value$; break;
+    case 1: jobId = (java.lang.CharSequence)value$; break;
+    case 2: progress = (java.lang.Long)value$; break;
+    case 3: error = (java.lang.CharSequence)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -72,6 +77,22 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
    */
   public void setConnectorName(java.lang.CharSequence value) {
     this.connectorName = value;
+  }
+
+  /**
+   * Gets the value of the 'jobId' field.
+   * @return The value of the 'jobId' field.
+   */
+  public java.lang.CharSequence getJobId() {
+    return jobId;
+  }
+
+  /**
+   * Sets the value of the 'jobId' field.
+   * @param value the value to set.
+   */
+  public void setJobId(java.lang.CharSequence value) {
+    this.jobId = value;
   }
 
   /**
@@ -107,38 +128,39 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
   }
 
   /**
-   * Creates a new MonitorResponse RecordBuilder.
-   * @return A new MonitorResponse RecordBuilder
+   * Creates a new MonitorResponse2 RecordBuilder.
+   * @return A new MonitorResponse2 RecordBuilder
    */
-  public static com.pharbers.kafka.monitor.schema.MonitorResponse.Builder newBuilder() {
-    return new com.pharbers.kafka.monitor.schema.MonitorResponse.Builder();
+  public static com.pharbers.kafka.schema.MonitorResponse2.Builder newBuilder() {
+    return new com.pharbers.kafka.schema.MonitorResponse2.Builder();
   }
 
   /**
-   * Creates a new MonitorResponse RecordBuilder by copying an existing Builder.
+   * Creates a new MonitorResponse2 RecordBuilder by copying an existing Builder.
    * @param other The existing builder to copy.
-   * @return A new MonitorResponse RecordBuilder
+   * @return A new MonitorResponse2 RecordBuilder
    */
-  public static com.pharbers.kafka.monitor.schema.MonitorResponse.Builder newBuilder(com.pharbers.kafka.monitor.schema.MonitorResponse.Builder other) {
-    return new com.pharbers.kafka.monitor.schema.MonitorResponse.Builder(other);
+  public static com.pharbers.kafka.schema.MonitorResponse2.Builder newBuilder(com.pharbers.kafka.schema.MonitorResponse2.Builder other) {
+    return new com.pharbers.kafka.schema.MonitorResponse2.Builder(other);
   }
 
   /**
-   * Creates a new MonitorResponse RecordBuilder by copying an existing MonitorResponse instance.
+   * Creates a new MonitorResponse2 RecordBuilder by copying an existing MonitorResponse2 instance.
    * @param other The existing instance to copy.
-   * @return A new MonitorResponse RecordBuilder
+   * @return A new MonitorResponse2 RecordBuilder
    */
-  public static com.pharbers.kafka.monitor.schema.MonitorResponse.Builder newBuilder(com.pharbers.kafka.monitor.schema.MonitorResponse other) {
-    return new com.pharbers.kafka.monitor.schema.MonitorResponse.Builder(other);
+  public static com.pharbers.kafka.schema.MonitorResponse2.Builder newBuilder(com.pharbers.kafka.schema.MonitorResponse2 other) {
+    return new com.pharbers.kafka.schema.MonitorResponse2.Builder(other);
   }
 
   /**
-   * RecordBuilder for MonitorResponse instances.
+   * RecordBuilder for MonitorResponse2 instances.
    */
-  public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<MonitorResponse>
-    implements org.apache.avro.data.RecordBuilder<MonitorResponse> {
+  public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<MonitorResponse2>
+    implements org.apache.avro.data.RecordBuilder<MonitorResponse2> {
 
     private java.lang.CharSequence connectorName;
+    private java.lang.CharSequence jobId;
     private long progress;
     private java.lang.CharSequence error;
 
@@ -151,39 +173,47 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
      * Creates a Builder by copying an existing Builder.
      * @param other The existing Builder to copy.
      */
-    private Builder(com.pharbers.kafka.monitor.schema.MonitorResponse.Builder other) {
+    private Builder(com.pharbers.kafka.schema.MonitorResponse2.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.connectorName)) {
         this.connectorName = data().deepCopy(fields()[0].schema(), other.connectorName);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.progress)) {
-        this.progress = data().deepCopy(fields()[1].schema(), other.progress);
+      if (isValidValue(fields()[1], other.jobId)) {
+        this.jobId = data().deepCopy(fields()[1].schema(), other.jobId);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.error)) {
-        this.error = data().deepCopy(fields()[2].schema(), other.error);
+      if (isValidValue(fields()[2], other.progress)) {
+        this.progress = data().deepCopy(fields()[2].schema(), other.progress);
         fieldSetFlags()[2] = true;
+      }
+      if (isValidValue(fields()[3], other.error)) {
+        this.error = data().deepCopy(fields()[3].schema(), other.error);
+        fieldSetFlags()[3] = true;
       }
     }
 
     /**
-     * Creates a Builder by copying an existing MonitorResponse instance
+     * Creates a Builder by copying an existing MonitorResponse2 instance
      * @param other The existing instance to copy.
      */
-    private Builder(com.pharbers.kafka.monitor.schema.MonitorResponse other) {
+    private Builder(com.pharbers.kafka.schema.MonitorResponse2 other) {
             super(SCHEMA$);
       if (isValidValue(fields()[0], other.connectorName)) {
         this.connectorName = data().deepCopy(fields()[0].schema(), other.connectorName);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.progress)) {
-        this.progress = data().deepCopy(fields()[1].schema(), other.progress);
+      if (isValidValue(fields()[1], other.jobId)) {
+        this.jobId = data().deepCopy(fields()[1].schema(), other.jobId);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.error)) {
-        this.error = data().deepCopy(fields()[2].schema(), other.error);
+      if (isValidValue(fields()[2], other.progress)) {
+        this.progress = data().deepCopy(fields()[2].schema(), other.progress);
         fieldSetFlags()[2] = true;
+      }
+      if (isValidValue(fields()[3], other.error)) {
+        this.error = data().deepCopy(fields()[3].schema(), other.error);
+        fieldSetFlags()[3] = true;
       }
     }
 
@@ -200,7 +230,7 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * @param value The value of 'connectorName'.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorResponse.Builder setConnectorName(java.lang.CharSequence value) {
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder setConnectorName(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.connectorName = value;
       fieldSetFlags()[0] = true;
@@ -220,9 +250,48 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * Clears the value of the 'connectorName' field.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorResponse.Builder clearConnectorName() {
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder clearConnectorName() {
       connectorName = null;
       fieldSetFlags()[0] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'jobId' field.
+      * @return The value.
+      */
+    public java.lang.CharSequence getJobId() {
+      return jobId;
+    }
+
+    /**
+      * Sets the value of the 'jobId' field.
+      * @param value The value of 'jobId'.
+      * @return This builder.
+      */
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder setJobId(java.lang.CharSequence value) {
+      validate(fields()[1], value);
+      this.jobId = value;
+      fieldSetFlags()[1] = true;
+      return this;
+    }
+
+    /**
+      * Checks whether the 'jobId' field has been set.
+      * @return True if the 'jobId' field has been set, false otherwise.
+      */
+    public boolean hasJobId() {
+      return fieldSetFlags()[1];
+    }
+
+
+    /**
+      * Clears the value of the 'jobId' field.
+      * @return This builder.
+      */
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder clearJobId() {
+      jobId = null;
+      fieldSetFlags()[1] = false;
       return this;
     }
 
@@ -239,10 +308,10 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * @param value The value of 'progress'.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorResponse.Builder setProgress(long value) {
-      validate(fields()[1], value);
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder setProgress(long value) {
+      validate(fields()[2], value);
       this.progress = value;
-      fieldSetFlags()[1] = true;
+      fieldSetFlags()[2] = true;
       return this;
     }
 
@@ -251,7 +320,7 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * @return True if the 'progress' field has been set, false otherwise.
       */
     public boolean hasProgress() {
-      return fieldSetFlags()[1];
+      return fieldSetFlags()[2];
     }
 
 
@@ -259,8 +328,8 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * Clears the value of the 'progress' field.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorResponse.Builder clearProgress() {
-      fieldSetFlags()[1] = false;
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder clearProgress() {
+      fieldSetFlags()[2] = false;
       return this;
     }
 
@@ -277,10 +346,10 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * @param value The value of 'error'.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorResponse.Builder setError(java.lang.CharSequence value) {
-      validate(fields()[2], value);
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder setError(java.lang.CharSequence value) {
+      validate(fields()[3], value);
       this.error = value;
-      fieldSetFlags()[2] = true;
+      fieldSetFlags()[3] = true;
       return this;
     }
 
@@ -289,7 +358,7 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * @return True if the 'error' field has been set, false otherwise.
       */
     public boolean hasError() {
-      return fieldSetFlags()[2];
+      return fieldSetFlags()[3];
     }
 
 
@@ -297,19 +366,20 @@ public class MonitorResponse extends org.apache.avro.specific.SpecificRecordBase
       * Clears the value of the 'error' field.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorResponse.Builder clearError() {
+    public com.pharbers.kafka.schema.MonitorResponse2.Builder clearError() {
       error = null;
-      fieldSetFlags()[2] = false;
+      fieldSetFlags()[3] = false;
       return this;
     }
 
     @Override
-    public MonitorResponse build() {
+    public MonitorResponse2 build() {
       try {
-        MonitorResponse record = new MonitorResponse();
+        MonitorResponse2 record = new MonitorResponse2();
         record.connectorName = fieldSetFlags()[0] ? this.connectorName : (java.lang.CharSequence) defaultValue(fields()[0]);
-        record.progress = fieldSetFlags()[1] ? this.progress : (java.lang.Long) defaultValue(fields()[1]);
-        record.error = fieldSetFlags()[2] ? this.error : (java.lang.CharSequence) defaultValue(fields()[2]);
+        record.jobId = fieldSetFlags()[1] ? this.jobId : (java.lang.CharSequence) defaultValue(fields()[1]);
+        record.progress = fieldSetFlags()[2] ? this.progress : (java.lang.Long) defaultValue(fields()[2]);
+        record.error = fieldSetFlags()[3] ? this.error : (java.lang.CharSequence) defaultValue(fields()[3]);
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);

@@ -3,17 +3,18 @@
  *
  * DO NOT EDIT DIRECTLY
  */
-package com.pharbers.kafka.monitor.schema;
+package com.pharbers.kafka.schema;
 
 import org.apache.avro.specific.SpecificData;
 
 @SuppressWarnings("all")
 @org.apache.avro.specific.AvroGenerated
-public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
-  private static final long serialVersionUID = 3800064127928841737L;
-  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"MonitorRequest\",\"namespace\":\"com.pharbers.kafka.monitor.schema\",\"fields\":[{\"name\":\"connectorName\",\"type\":\"string\"},{\"name\":\"sourceTopic\",\"type\":\"string\"},{\"name\":\"recallTopic\",\"type\":\"string\"},{\"name\":\"strategy\",\"type\":\"string\"}]}");
+public class MonitorRequest2 extends org.apache.avro.specific.SpecificRecordBase implements org.apache.avro.specific.SpecificRecord {
+  private static final long serialVersionUID = -3409189375966544764L;
+  public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse("{\"type\":\"record\",\"name\":\"MonitorRequest2\",\"namespace\":\"com.pharbers.kafka.schema\",\"fields\":[{\"name\":\"connectorName\",\"type\":\"string\"},{\"name\":\"jobId\",\"type\":\"string\"},{\"name\":\"sourceTopic\",\"type\":\"string\"},{\"name\":\"recallTopic\",\"type\":\"string\"},{\"name\":\"strategy\",\"type\":\"string\"}]}");
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
   @Deprecated public java.lang.CharSequence connectorName;
+  @Deprecated public java.lang.CharSequence jobId;
   @Deprecated public java.lang.CharSequence sourceTopic;
   @Deprecated public java.lang.CharSequence recallTopic;
   @Deprecated public java.lang.CharSequence strategy;
@@ -23,17 +24,19 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
    * to their default values from the schema.  If that is desired then
    * one should use <code>newBuilder()</code>.
    */
-  public MonitorRequest() {}
+  public MonitorRequest2() {}
 
   /**
    * All-args constructor.
    * @param connectorName The new value for connectorName
+   * @param jobId The new value for jobId
    * @param sourceTopic The new value for sourceTopic
    * @param recallTopic The new value for recallTopic
    * @param strategy The new value for strategy
    */
-  public MonitorRequest(java.lang.CharSequence connectorName, java.lang.CharSequence sourceTopic, java.lang.CharSequence recallTopic, java.lang.CharSequence strategy) {
+  public MonitorRequest2(java.lang.CharSequence connectorName, java.lang.CharSequence jobId, java.lang.CharSequence sourceTopic, java.lang.CharSequence recallTopic, java.lang.CharSequence strategy) {
     this.connectorName = connectorName;
+    this.jobId = jobId;
     this.sourceTopic = sourceTopic;
     this.recallTopic = recallTopic;
     this.strategy = strategy;
@@ -44,9 +47,10 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
   public java.lang.Object get(int field$) {
     switch (field$) {
     case 0: return connectorName;
-    case 1: return sourceTopic;
-    case 2: return recallTopic;
-    case 3: return strategy;
+    case 1: return jobId;
+    case 2: return sourceTopic;
+    case 3: return recallTopic;
+    case 4: return strategy;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -56,9 +60,10 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
   public void put(int field$, java.lang.Object value$) {
     switch (field$) {
     case 0: connectorName = (java.lang.CharSequence)value$; break;
-    case 1: sourceTopic = (java.lang.CharSequence)value$; break;
-    case 2: recallTopic = (java.lang.CharSequence)value$; break;
-    case 3: strategy = (java.lang.CharSequence)value$; break;
+    case 1: jobId = (java.lang.CharSequence)value$; break;
+    case 2: sourceTopic = (java.lang.CharSequence)value$; break;
+    case 3: recallTopic = (java.lang.CharSequence)value$; break;
+    case 4: strategy = (java.lang.CharSequence)value$; break;
     default: throw new org.apache.avro.AvroRuntimeException("Bad index");
     }
   }
@@ -77,6 +82,22 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
    */
   public void setConnectorName(java.lang.CharSequence value) {
     this.connectorName = value;
+  }
+
+  /**
+   * Gets the value of the 'jobId' field.
+   * @return The value of the 'jobId' field.
+   */
+  public java.lang.CharSequence getJobId() {
+    return jobId;
+  }
+
+  /**
+   * Sets the value of the 'jobId' field.
+   * @param value the value to set.
+   */
+  public void setJobId(java.lang.CharSequence value) {
+    this.jobId = value;
   }
 
   /**
@@ -128,38 +149,39 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
   }
 
   /**
-   * Creates a new MonitorRequest RecordBuilder.
-   * @return A new MonitorRequest RecordBuilder
+   * Creates a new MonitorRequest2 RecordBuilder.
+   * @return A new MonitorRequest2 RecordBuilder
    */
-  public static com.pharbers.kafka.monitor.schema.MonitorRequest.Builder newBuilder() {
-    return new com.pharbers.kafka.monitor.schema.MonitorRequest.Builder();
+  public static com.pharbers.kafka.schema.MonitorRequest2.Builder newBuilder() {
+    return new com.pharbers.kafka.schema.MonitorRequest2.Builder();
   }
 
   /**
-   * Creates a new MonitorRequest RecordBuilder by copying an existing Builder.
+   * Creates a new MonitorRequest2 RecordBuilder by copying an existing Builder.
    * @param other The existing builder to copy.
-   * @return A new MonitorRequest RecordBuilder
+   * @return A new MonitorRequest2 RecordBuilder
    */
-  public static com.pharbers.kafka.monitor.schema.MonitorRequest.Builder newBuilder(com.pharbers.kafka.monitor.schema.MonitorRequest.Builder other) {
-    return new com.pharbers.kafka.monitor.schema.MonitorRequest.Builder(other);
+  public static com.pharbers.kafka.schema.MonitorRequest2.Builder newBuilder(com.pharbers.kafka.schema.MonitorRequest2.Builder other) {
+    return new com.pharbers.kafka.schema.MonitorRequest2.Builder(other);
   }
 
   /**
-   * Creates a new MonitorRequest RecordBuilder by copying an existing MonitorRequest instance.
+   * Creates a new MonitorRequest2 RecordBuilder by copying an existing MonitorRequest2 instance.
    * @param other The existing instance to copy.
-   * @return A new MonitorRequest RecordBuilder
+   * @return A new MonitorRequest2 RecordBuilder
    */
-  public static com.pharbers.kafka.monitor.schema.MonitorRequest.Builder newBuilder(com.pharbers.kafka.monitor.schema.MonitorRequest other) {
-    return new com.pharbers.kafka.monitor.schema.MonitorRequest.Builder(other);
+  public static com.pharbers.kafka.schema.MonitorRequest2.Builder newBuilder(com.pharbers.kafka.schema.MonitorRequest2 other) {
+    return new com.pharbers.kafka.schema.MonitorRequest2.Builder(other);
   }
 
   /**
-   * RecordBuilder for MonitorRequest instances.
+   * RecordBuilder for MonitorRequest2 instances.
    */
-  public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<MonitorRequest>
-    implements org.apache.avro.data.RecordBuilder<MonitorRequest> {
+  public static class Builder extends org.apache.avro.specific.SpecificRecordBuilderBase<MonitorRequest2>
+    implements org.apache.avro.data.RecordBuilder<MonitorRequest2> {
 
     private java.lang.CharSequence connectorName;
+    private java.lang.CharSequence jobId;
     private java.lang.CharSequence sourceTopic;
     private java.lang.CharSequence recallTopic;
     private java.lang.CharSequence strategy;
@@ -173,47 +195,55 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
      * Creates a Builder by copying an existing Builder.
      * @param other The existing Builder to copy.
      */
-    private Builder(com.pharbers.kafka.monitor.schema.MonitorRequest.Builder other) {
+    private Builder(com.pharbers.kafka.schema.MonitorRequest2.Builder other) {
       super(other);
       if (isValidValue(fields()[0], other.connectorName)) {
         this.connectorName = data().deepCopy(fields()[0].schema(), other.connectorName);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.sourceTopic)) {
-        this.sourceTopic = data().deepCopy(fields()[1].schema(), other.sourceTopic);
+      if (isValidValue(fields()[1], other.jobId)) {
+        this.jobId = data().deepCopy(fields()[1].schema(), other.jobId);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.recallTopic)) {
-        this.recallTopic = data().deepCopy(fields()[2].schema(), other.recallTopic);
+      if (isValidValue(fields()[2], other.sourceTopic)) {
+        this.sourceTopic = data().deepCopy(fields()[2].schema(), other.sourceTopic);
         fieldSetFlags()[2] = true;
       }
-      if (isValidValue(fields()[3], other.strategy)) {
-        this.strategy = data().deepCopy(fields()[3].schema(), other.strategy);
+      if (isValidValue(fields()[3], other.recallTopic)) {
+        this.recallTopic = data().deepCopy(fields()[3].schema(), other.recallTopic);
         fieldSetFlags()[3] = true;
+      }
+      if (isValidValue(fields()[4], other.strategy)) {
+        this.strategy = data().deepCopy(fields()[4].schema(), other.strategy);
+        fieldSetFlags()[4] = true;
       }
     }
 
     /**
-     * Creates a Builder by copying an existing MonitorRequest instance
+     * Creates a Builder by copying an existing MonitorRequest2 instance
      * @param other The existing instance to copy.
      */
-    private Builder(com.pharbers.kafka.monitor.schema.MonitorRequest other) {
+    private Builder(com.pharbers.kafka.schema.MonitorRequest2 other) {
             super(SCHEMA$);
       if (isValidValue(fields()[0], other.connectorName)) {
         this.connectorName = data().deepCopy(fields()[0].schema(), other.connectorName);
         fieldSetFlags()[0] = true;
       }
-      if (isValidValue(fields()[1], other.sourceTopic)) {
-        this.sourceTopic = data().deepCopy(fields()[1].schema(), other.sourceTopic);
+      if (isValidValue(fields()[1], other.jobId)) {
+        this.jobId = data().deepCopy(fields()[1].schema(), other.jobId);
         fieldSetFlags()[1] = true;
       }
-      if (isValidValue(fields()[2], other.recallTopic)) {
-        this.recallTopic = data().deepCopy(fields()[2].schema(), other.recallTopic);
+      if (isValidValue(fields()[2], other.sourceTopic)) {
+        this.sourceTopic = data().deepCopy(fields()[2].schema(), other.sourceTopic);
         fieldSetFlags()[2] = true;
       }
-      if (isValidValue(fields()[3], other.strategy)) {
-        this.strategy = data().deepCopy(fields()[3].schema(), other.strategy);
+      if (isValidValue(fields()[3], other.recallTopic)) {
+        this.recallTopic = data().deepCopy(fields()[3].schema(), other.recallTopic);
         fieldSetFlags()[3] = true;
+      }
+      if (isValidValue(fields()[4], other.strategy)) {
+        this.strategy = data().deepCopy(fields()[4].schema(), other.strategy);
+        fieldSetFlags()[4] = true;
       }
     }
 
@@ -230,7 +260,7 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * @param value The value of 'connectorName'.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder setConnectorName(java.lang.CharSequence value) {
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder setConnectorName(java.lang.CharSequence value) {
       validate(fields()[0], value);
       this.connectorName = value;
       fieldSetFlags()[0] = true;
@@ -250,9 +280,48 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * Clears the value of the 'connectorName' field.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder clearConnectorName() {
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder clearConnectorName() {
       connectorName = null;
       fieldSetFlags()[0] = false;
+      return this;
+    }
+
+    /**
+      * Gets the value of the 'jobId' field.
+      * @return The value.
+      */
+    public java.lang.CharSequence getJobId() {
+      return jobId;
+    }
+
+    /**
+      * Sets the value of the 'jobId' field.
+      * @param value The value of 'jobId'.
+      * @return This builder.
+      */
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder setJobId(java.lang.CharSequence value) {
+      validate(fields()[1], value);
+      this.jobId = value;
+      fieldSetFlags()[1] = true;
+      return this;
+    }
+
+    /**
+      * Checks whether the 'jobId' field has been set.
+      * @return True if the 'jobId' field has been set, false otherwise.
+      */
+    public boolean hasJobId() {
+      return fieldSetFlags()[1];
+    }
+
+
+    /**
+      * Clears the value of the 'jobId' field.
+      * @return This builder.
+      */
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder clearJobId() {
+      jobId = null;
+      fieldSetFlags()[1] = false;
       return this;
     }
 
@@ -269,10 +338,10 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * @param value The value of 'sourceTopic'.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder setSourceTopic(java.lang.CharSequence value) {
-      validate(fields()[1], value);
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder setSourceTopic(java.lang.CharSequence value) {
+      validate(fields()[2], value);
       this.sourceTopic = value;
-      fieldSetFlags()[1] = true;
+      fieldSetFlags()[2] = true;
       return this;
     }
 
@@ -281,7 +350,7 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * @return True if the 'sourceTopic' field has been set, false otherwise.
       */
     public boolean hasSourceTopic() {
-      return fieldSetFlags()[1];
+      return fieldSetFlags()[2];
     }
 
 
@@ -289,9 +358,9 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * Clears the value of the 'sourceTopic' field.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder clearSourceTopic() {
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder clearSourceTopic() {
       sourceTopic = null;
-      fieldSetFlags()[1] = false;
+      fieldSetFlags()[2] = false;
       return this;
     }
 
@@ -308,10 +377,10 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * @param value The value of 'recallTopic'.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder setRecallTopic(java.lang.CharSequence value) {
-      validate(fields()[2], value);
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder setRecallTopic(java.lang.CharSequence value) {
+      validate(fields()[3], value);
       this.recallTopic = value;
-      fieldSetFlags()[2] = true;
+      fieldSetFlags()[3] = true;
       return this;
     }
 
@@ -320,7 +389,7 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * @return True if the 'recallTopic' field has been set, false otherwise.
       */
     public boolean hasRecallTopic() {
-      return fieldSetFlags()[2];
+      return fieldSetFlags()[3];
     }
 
 
@@ -328,9 +397,9 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * Clears the value of the 'recallTopic' field.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder clearRecallTopic() {
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder clearRecallTopic() {
       recallTopic = null;
-      fieldSetFlags()[2] = false;
+      fieldSetFlags()[3] = false;
       return this;
     }
 
@@ -347,10 +416,10 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * @param value The value of 'strategy'.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder setStrategy(java.lang.CharSequence value) {
-      validate(fields()[3], value);
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder setStrategy(java.lang.CharSequence value) {
+      validate(fields()[4], value);
       this.strategy = value;
-      fieldSetFlags()[3] = true;
+      fieldSetFlags()[4] = true;
       return this;
     }
 
@@ -359,7 +428,7 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * @return True if the 'strategy' field has been set, false otherwise.
       */
     public boolean hasStrategy() {
-      return fieldSetFlags()[3];
+      return fieldSetFlags()[4];
     }
 
 
@@ -367,20 +436,21 @@ public class MonitorRequest extends org.apache.avro.specific.SpecificRecordBase 
       * Clears the value of the 'strategy' field.
       * @return This builder.
       */
-    public com.pharbers.kafka.monitor.schema.MonitorRequest.Builder clearStrategy() {
+    public com.pharbers.kafka.schema.MonitorRequest2.Builder clearStrategy() {
       strategy = null;
-      fieldSetFlags()[3] = false;
+      fieldSetFlags()[4] = false;
       return this;
     }
 
     @Override
-    public MonitorRequest build() {
+    public MonitorRequest2 build() {
       try {
-        MonitorRequest record = new MonitorRequest();
+        MonitorRequest2 record = new MonitorRequest2();
         record.connectorName = fieldSetFlags()[0] ? this.connectorName : (java.lang.CharSequence) defaultValue(fields()[0]);
-        record.sourceTopic = fieldSetFlags()[1] ? this.sourceTopic : (java.lang.CharSequence) defaultValue(fields()[1]);
-        record.recallTopic = fieldSetFlags()[2] ? this.recallTopic : (java.lang.CharSequence) defaultValue(fields()[2]);
-        record.strategy = fieldSetFlags()[3] ? this.strategy : (java.lang.CharSequence) defaultValue(fields()[3]);
+        record.jobId = fieldSetFlags()[1] ? this.jobId : (java.lang.CharSequence) defaultValue(fields()[1]);
+        record.sourceTopic = fieldSetFlags()[2] ? this.sourceTopic : (java.lang.CharSequence) defaultValue(fields()[2]);
+        record.recallTopic = fieldSetFlags()[3] ? this.recallTopic : (java.lang.CharSequence) defaultValue(fields()[3]);
+        record.strategy = fieldSetFlags()[4] ? this.strategy : (java.lang.CharSequence) defaultValue(fields()[4]);
         return record;
       } catch (Exception e) {
         throw new org.apache.avro.AvroRuntimeException(e);

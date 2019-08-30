@@ -41,12 +41,14 @@ case class StatusGuard(jobId: String, action: Action, version: String = "") exte
                 val connectorName = getName(x.key())
                 val value = JsonHandler.objectMapper.readTree(x.value())
                 value.get("state").asText() match {
-                    case "RUNNING" => GuardManager.startGuard(connectorName)
-                    case "UNASSIGNED" => logger.info(s"key:${x.key()} UNASSIGNED")
+                    case "RUNNING" =>
+                        logger.debug(s"key:${x.key()} RUNNING")
+//                        GuardManager.startGuard(connectorName)
+                    case "UNASSIGNED" => logger.debug(s"key:${x.key()} UNASSIGNED")
                     case "FAILED" =>
                         action.error(connectorName + "#" +value.get("trace").asText())
                         GuardManager.close(connectorName)
-                    case "PAUSED" => logger.info(s"key:${x.key()} PAUSED")
+                    case "PAUSED" => logger.debug(s"key:${x.key()} PAUSED")
                 }
             })
         }

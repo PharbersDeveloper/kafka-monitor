@@ -50,7 +50,8 @@ object BaseGuardManager extends GuardManager {
     }
 
     def close(id: String): Unit = {
-        val guard = getGuard(id)
+        val name = guardMap.keys.find(x => x.split("#").contains(id)).getOrElse("")
+        val guard = getGuard(name)
         if (guard.isOpen) {
             guard.close()
         }
